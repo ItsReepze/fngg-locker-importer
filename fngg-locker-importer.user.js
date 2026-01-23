@@ -16,6 +16,7 @@
 // @connect      fortnite-api.com
 // @connect      fortnite.gg
 // @require      https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js
+// @license      All Rights Reserved
 // ==/UserScript==
 
 (function() {
