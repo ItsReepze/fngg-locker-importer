@@ -3,7 +3,7 @@
 Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with one click.
 
 ![Version](https://img.shields.io/badge/version-2.1-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)
 
 ## Features
 
@@ -29,12 +29,14 @@ Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with on
 
 ## Screenshots
 
-*Coming soon*
+![Panel](screenshot1.png)
+![Login](screenshot2.png)
+![Import](screenshot3.png)
 
 ## FAQ
 
 **Is this safe?**
-Yes. The script uses Epic's official OAuth flow. Your password is never entered in the script - you login directly on Epic's website. The script only receives a temporary token that can read your locker, nothing else.
+Yes. The script uses Epic's official OAuth flow. Your password is never entered in the script, you login directly on Epic's website. The script only receives a temporary token that can read your locker, nothing else.
 
 **Why do I need to login again after a while?**
 The token expires after ~2 hours for security reasons. This is normal.
@@ -48,8 +50,8 @@ If you like this script, you can support me by using creator code **"Reepze"** i
 
 ## License
 
-MIT - do whatever you want with it
+All Rights Reserved - you can use it, but don't redistribute or modify without permission
 
 ---
 
-Made with ❤️ by [Reepze](https://fortnite.gg/@reepze)
+Made with ❤️ by Reepze
