@@ -15,7 +15,7 @@ Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with on
 ## Installation
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/) for your browser
-2. Click **[Install Script](https://greasyfork.org/scripts/XXXXX)** on Greasy Fork
+2. Click **[Install Script](https://greasyfork.org/scripts/563780)** on Greasy Fork
 3. Go to [fortnite.gg/locker](https://fortnite.gg/locker)
 4. Click "Connect Epic Account" and follow the instructions
 
