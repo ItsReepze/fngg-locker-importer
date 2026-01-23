@@ -29,9 +29,14 @@ Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with on
 
 ## Screenshots
 
-![Panel](screenshot1.png)
-![Login](screenshot2.png)
-![Import](screenshot3.png)
+### Connect
+![Connect](images/panel.png)
+
+### Login
+![Login](images/login.png)
+
+### Import
+![Import](images/connected.png)
 
 ## FAQ
 
