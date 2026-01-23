@@ -16,6 +16,8 @@
 // @connect      fortnite-api.com
 // @connect      fortnite.gg
 // @require      https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js
+// @updateURL    https://greasyfork.org/scripts/563780/code/script.meta.js
+// @downloadURL  https://greasyfork.org/scripts/563780/code/script.user.js
 // @license      All Rights Reserved
 // ==/UserScript==
 
