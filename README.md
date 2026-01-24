@@ -2,7 +2,7 @@
 
 Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with one click.
 
-![Version](https://img.shields.io/badge/version-2.1-blue)
+![Version](https://img.shields.io/badge/version-2.2-blue)
 ![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)
 
 ## Features
