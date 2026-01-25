@@ -33,8 +33,14 @@ Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with on
 ### Login
 ![Login](images/login.png)
 
+### Confirm
+![confirm](images/confirm.png)
+
 ### Connected
 ![Connected](images/connected.png)
+
+### Importing
+![Importing](images/import.png)
 
 ## FAQ
 
