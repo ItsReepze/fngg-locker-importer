@@ -12,20 +12,32 @@ Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with on
 - **Secure login** - Uses Epic's official Device Code flow, your password never touches the script
 - **Session saving** - Stay logged in for ~2 hours, no need to re-authenticate every time
 
-## Installation
+## How to Use
 
+### Step 1: Install the Script
 1. Install [Tampermonkey](https://www.tampermonkey.net/) for your browser
-2. Click **[Install Script](https://greasyfork.org/scripts/563780)** on Greasy Fork
-3. Go to [fortnite.gg/locker](https://fortnite.gg/locker)
-4. Click "Connect Epic Account" and follow the instructions
+2. Install the script from [Greasyfork](https://greasyfork.org/en/scripts/563780)
 
-## How it works
+### Step 2: Import Your Locker
+1. Go to [fortnite.gg/locker](https://fortnite.gg/locker)
+2. You'll see a panel in the bottom-right corner
+3. Click **"Link Epic Account"**
 
-1. You login via Epic's Device Code (like Discord or other apps do)
-2. Script reads your cosmetics from Epic's API
-3. Items get matched with fortnite.gg's database
-4. Everything gets sorted and compressed into a URL
-5. You get redirected to your locker page
+### Step 3: Login to Epic Games
+A popup will open with Epic Games login.
+
+**If you're NOT logged in to Epic:**
+- Log in with your Epic account
+- Click "Confirm"
+
+**If you're already logged in to Epic:**
+- You'll skip the login
+- Just click "Confirm" directly
+
+### Step 4: Import
+1. Once connected, click **"Import Locker"**
+2. Wait for the import to finish (can take a minute for large lockers)
+3. You'll be redirected to your locker page on fortnite.gg
 
 ## Screenshots
 
