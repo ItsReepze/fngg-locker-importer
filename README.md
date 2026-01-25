@@ -2,7 +2,7 @@
 
 Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with one click.
 
-![Version](https://img.shields.io/badge/version-2.2-blue)
+![Version](https://img.shields.io/badge/version-2.3-blue)
 ![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)
 
 ## Features
@@ -12,43 +12,29 @@ Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with on
 - **Secure login** - Uses Epic's official Device Code flow, your password never touches the script
 - **Session saving** - Stay logged in for ~2 hours, no need to re-authenticate every time
 
-## How to Use
+## Installation
 
-### Step 1: Install the Script
 1. Install [Tampermonkey](https://www.tampermonkey.net/) for your browser
 2. Install the script from [Greasyfork](https://greasyfork.org/en/scripts/563780)
 
-### Step 2: Import Your Locker
+## How to Use
+
 1. Go to [fortnite.gg/locker](https://fortnite.gg/locker)
-2. You'll see a panel in the bottom-right corner
-3. Click **"Link Epic Account"**
-
-### Step 3: Login to Epic Games
-A popup will open with Epic Games login.
-
-**If you're NOT logged in to Epic:**
-- Log in with your Epic account
-- Click "Confirm"
-
-**If you're already logged in to Epic:**
-- You'll skip the login
-- Just click "Confirm" directly
-
-### Step 4: Import
-1. Once connected, click **"Import Locker"**
-2. Wait for the import to finish (can take a minute for large lockers)
-3. You'll be redirected to your locker page on fortnite.gg
+2. Click **"Link Epic Account"** in the panel
+3. Login to Epic Games and click **"Confirm"**
+4. Click **"Import Locker"** and wait for it to finish
+5. Done! You'll be redirected to your locker page
 
 ## Screenshots
 
-### Connect
-![Connect](images/panel.png)
+### Panel
+![Panel](images/panel.png)
 
 ### Login
 ![Login](images/login.png)
 
-### Import
-![Import](images/connected.png)
+### Connected
+![Connected](images/connected.png)
 
 ## FAQ
 
@@ -67,8 +53,8 @@ If you like this script, you can support me by using creator code **"Reepze"** i
 
 ## License
 
-All Rights Reserved - you can use it, but don't redistribute or modify without permission
+All Rights Reserved - you can use it, but don't redistribute or modify without permission.
 
 ---
 
-Made with ❤️ by Reepze
+Made with ❤️ by [Reepze](https://fortnite.gg/@reepze)
