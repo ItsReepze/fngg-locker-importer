@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fortnite.gg Locker Importer
 // @namespace    https://fortnite.gg/
-// @version      2.4
+// @version      2.5
 // @description  Import your Fortnite locker to Fortnite.gg
 // @author       ItsReepze
 // @match        https://fortnite.gg/*
@@ -161,65 +161,91 @@
     }
 
     GM_addStyle(`
-        #fngg-panel{position:fixed;top:80px;right:20px;width:320px;background:#1a1a1d;border:1px solid #2a2a2d;border-radius:8px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;z-index:999999;box-shadow:0 8px 32px rgba(0,0,0,.6)}
-        #fngg-panel.min .body{display:none}
-        .fngg-hdr{background:#222225;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2a2a2d}
+        #fngg-panel{position:fixed;top:60px;right:0;width:350px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-right:0;border-radius:16px 0 0 16px;font-family:fn,sans-serif;z-index:999999;box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;transition:transform .3s ease}
+        #fngg-panel.min{transform:translateX(100%)}
+        #fngg-tab{position:fixed;top:110px;right:0;width:26px;height:48px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-right:0;border-radius:6px 0 0 6px;cursor:pointer;z-index:999998;display:flex;align-items:center;justify-content:center;color:#888;font-size:13px;transition:right .3s ease,background .2s,color .2s}
+        #fngg-tab:hover{background:rgba(40,40,45,.8);color:#fff}
+        #fngg-tab.open{right:350px}
+        #fngg-info{position:fixed;bottom:15px;right:0;width:350px;max-height:calc(100vh - 290px);background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-right:0;border-radius:16px 0 0 16px;font-family:fn,sans-serif;z-index:999998;box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;transform:translateX(100%);opacity:0;transition:all .3s ease;pointer-events:none;overflow-y:auto}
+        #fngg-info.show{transform:translateX(0);opacity:1;pointer-events:auto}
+        .fngg-hdr{background:linear-gradient(135deg,rgba(45,45,50,.5) 0%,rgba(35,35,40,.5) 100%);padding:15px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08);border-radius:16px 0 0 0}
         .fngg-brand{display:flex;align-items:center;gap:10px}
-        .fngg-brand img{width:32px;height:32px;border-radius:6px}
-        .fngg-brand span{font-size:14px;font-weight:600;color:#fff}
+        .fngg-brand img{width:35px;height:35px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+        .fngg-brand span{font-size:16px;font-weight:700;color:#fff;letter-spacing:.5px;text-transform:uppercase}
         .fngg-btns{display:flex;gap:4px}
-        .fngg-hbtn{background:0;border:0;color:#666;width:28px;height:28px;border-radius:4px;cursor:pointer}
-        .fngg-hbtn:hover{background:#2a2a2d;color:#fff}
-        .body{padding:16px}
-        .ucard{display:flex;align-items:center;gap:12px;padding:12px;background:#222225;border-radius:6px;margin-bottom:12px}
-        .ucard img{width:40px;height:40px;border-radius:6px}
+        .fngg-hbtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#888;width:30px;height:30px;border-radius:8px;cursor:pointer;transition:all .2s;font-size:13px}
+        .fngg-hbtn:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.15);color:#fff}
+        .body{padding:18px}
+        .ucard{display:flex;align-items:center;gap:14px;padding:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;margin-bottom:14px}
+        .ucard img{width:48px;height:48px;border-radius:10px;object-fit:cover;box-shadow:0 0 12px rgba(240,219,79,.2),0 2px 8px rgba(0,0,0,.3)}
+        .ucard-placeholder{width:48px;height:48px;border-radius:10px;background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:20px}
         .ucard .info{flex:1;min-width:0}
-        .ucard .name{font-size:13px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .ucard .status{font-size:11px;color:#4ade80;display:flex;align-items:center;gap:4px;margin-top:2px}
-        .ucard .status::before{content:'';width:6px;height:6px;background:#4ade80;border-radius:50%}
-        .lout{background:0;border:1px solid #333;color:#888;font-size:11px;padding:5px 10px;border-radius:4px;cursor:pointer}
-        .lout:hover{background:rgba(239,68,68,.1);border-color:#ef4444;color:#ef4444}
-        .btn{width:100%;padding:12px 16px;border:0;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer}
+        .ucard .name{font-size:15px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2;text-transform:uppercase;letter-spacing:.3px}
+        .ucard .status{font-size:12px;color:#4ade80;display:flex;align-items:center;gap:5px;margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+        .ucard .status::before{content:'';width:6px;height:6px;background:#4ade80;border-radius:50%;box-shadow:0 0 6px #4ade80;animation:pulse 2s ease-in-out infinite}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.9)}}
+        .lout{background:0;border:1px solid rgba(255,255,255,.1);color:#888;font-size:11px;padding:7px 14px;border-radius:6px;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+        .lout:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:#ef4444}
+        .btn{width:100%;padding:15px 18px;border:0;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:.5px}
         .btn:disabled{opacity:.5;cursor:not-allowed}
-        .btn-y{background:#f0db4f;color:#000}
-        .btn-y:hover:not(:disabled){background:#f5e066}
-        .btn-g{background:#22c55e;color:#fff}
-        .btn-g:hover:not(:disabled){background:#16a34a}
-        .btn-x{background:#2a2a2d;color:#aaa;margin-top:12px}
-        .btn-x:hover:not(:disabled){background:#333;color:#fff}
-        .stxt{font-size:11px;color:#666;text-align:center;padding:10px;background:#222225;border-radius:6px;margin-top:12px}
-        .fngg-m{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9999999;opacity:0;visibility:hidden;transition:opacity .2s}
+        .btn-y{background:linear-gradient(135deg,#f0db4f 0%,#e6c93a 100%);color:#000;box-shadow:0 2px 12px rgba(240,219,79,.25)}
+        .btn-y:hover:not(:disabled){background:linear-gradient(135deg,#f5e066 0%,#f0db4f 100%);box-shadow:0 4px 16px rgba(240,219,79,.35);transform:translateY(-1px)}
+        .btn-g{background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);color:#fff;box-shadow:0 2px 12px rgba(34,197,94,.25)}
+        .btn-g:hover:not(:disabled){background:linear-gradient(135deg,#2dd468 0%,#22c55e 100%);box-shadow:0 4px 16px rgba(34,197,94,.35);transform:translateY(-1px)}
+        .btn-x{background:rgba(255,255,255,.05);color:#aaa;margin-top:12px;border:1px solid rgba(255,255,255,.08)}
+        .btn-x:hover:not(:disabled){background:rgba(255,255,255,.08);color:#fff}
+        .stxt{font-size:11px;color:#555;text-align:center;padding:10px;background:rgba(255,255,255,.02);border-radius:8px;margin-top:12px;border:1px solid rgba(255,255,255,.04)}
+        .fngg-m{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:9999999;opacity:0;visibility:hidden;transition:opacity .2s}
         .fngg-m.show{opacity:1;visibility:visible}
-        .mbox{background:#1a1a1d;border:1px solid #2a2a2d;border-radius:12px;padding:24px;width:360px;text-align:center}
-        .mtitle{font-size:18px;font-weight:700;color:#fff;margin-bottom:20px}
-        .spin{width:28px;height:28px;border:3px solid #333;border-top-color:#f0db4f;border-radius:50%;animation:spin .8s linear infinite;margin:16px auto}
+        .mbox{background:rgba(15,15,18,.55);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:24px;width:340px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;font-family:fn,sans-serif}
+        .mtitle{font-size:20px;font-weight:700;color:#fff;margin-bottom:20px;text-transform:uppercase;letter-spacing:.5px}
+        .spin{width:28px;height:28px;border:3px solid rgba(255,255,255,.1);border-top-color:#f0db4f;border-radius:50%;animation:spin .8s linear infinite;margin:16px auto}
         @keyframes spin{to{transform:rotate(360deg)}}
         .mhint{font-size:12px;color:#666}
-        .isec{text-align:left;margin-bottom:16px}
-        .isec h3{font-size:13px;font-weight:600;color:#f0db4f;margin-bottom:8px}
-        .isec p{font-size:12px;color:#aaa;line-height:1.5}
-        .isec a{color:#f0db4f}
-        .srow{display:flex;align-items:center;justify-content:space-between;padding:12px;background:#222225;border-radius:6px}
-        .srow .slbl{font-size:12px;color:#fff}
-        .srow .sdesc{font-size:10px;color:#666;margin-top:2px}
-        .tog{position:relative;width:40px;height:22px;background:#333;border-radius:11px;cursor:pointer}
+        .isec{text-align:left;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.08)}
+        .isec:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0}
+        .isec h3{font-size:13px;font-weight:700;color:#f0db4f;margin-bottom:7px;text-transform:uppercase;letter-spacing:.3px}
+        .isec p{font-size:13px;color:#ccc;line-height:1.6}
+        .isec a{color:#f0db4f;text-decoration:none}
+        .isec a:hover{text-decoration:underline}
+        .isec.footer{margin-top:8px;padding-top:16px;border-top:1px solid rgba(255,255,255,.1);border-bottom:0}
+        .isec.footer .credit{color:#f0db4f;font-size:12px;font-weight:600}
+        .isec.footer .credit a{color:#f0db4f}
+        .isec.footer .links{font-size:11px;margin-top:7px}
+        .isec.footer .links a{color:#999}
+        .isec.footer .disclaimer{color:#666;font-size:11px;margin-top:7px}
+        .isec.footer .version{color:#555;font-size:11px;margin-top:5px}
+        .login-card{display:flex;align-items:center;gap:12px;padding:16px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;margin-bottom:12px}
+        .login-icon{font-size:28px}
+        .login-text{flex:1}
+        .login-title{font-size:13px;font-weight:600;color:#fff;text-transform:uppercase;letter-spacing:.3px}
+        .login-desc{font-size:11px;color:#888;margin-top:3px}
+        .srow{display:flex;align-items:center;justify-content:space-between;padding:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px}
+        .srow .slbl{font-size:11px;color:#fff;text-transform:uppercase}
+        .srow .sdesc{font-size:9px;color:#666;margin-top:2px}
+        .tog{position:relative;width:40px;height:22px;background:rgba(255,255,255,.1);border-radius:11px;cursor:pointer;transition:background .2s}
         .tog.on{background:#22c55e}
-        .tog::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;transition:left .2s}
+        .tog::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;transition:left .2s;box-shadow:0 2px 4px rgba(0,0,0,.2)}
         .tog.on::after{left:20px}
-        .ver{font-size:10px;color:#555;margin-top:16px}
+        .ver{font-size:10px;color:#444;margin-top:16px}
         .sicon{font-size:40px;margin-bottom:12px}
         .stxt2{font-size:13px;color:#aaa;line-height:1.6;margin-bottom:20px}
         .stxt2 strong{color:#fff}
-        .btn-sac{background:#f0db4f;color:#000;margin-bottom:8px}
-        .btn-skip{background:0;border:0;color:#666;font-size:12px;padding:8px;cursor:pointer;width:100%}
-        .btn-skip:hover{color:#888}
-        #fngg-toast{position:fixed;bottom:20px;right:20px;background:#222225;border:1px solid #2a2a2d;border-radius:8px;padding:12px 20px;font-size:13px;color:#fff;z-index:99999999;transform:translateY(100px);opacity:0;transition:all .25s}
+        .btn-sac{background:linear-gradient(135deg,#f0db4f 0%,#e6c93a 100%);color:#000;margin-bottom:8px}
+        .btn-skip{background:0;border:0;color:#666;font-size:12px;padding:8px;cursor:pointer;width:100%;transition:color .2s}
+        .btn-skip:hover{color:#999}
+        #fngg-toast{position:fixed;bottom:20px;left:20px;background:rgba(26,26,29,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 20px;font-size:13px;font-weight:600;color:#fff;z-index:99999999;transform:translateY(100px);opacity:0;transition:all .25s;box-shadow:0 8px 24px rgba(0,0,0,.3);font-family:fn,sans-serif;text-transform:uppercase;letter-spacing:.3px}
         #fngg-toast.show{transform:translateY(0);opacity:1}
         #fngg-toast.ok{border-left:3px solid #22c55e}
         #fngg-toast.err{border-left:3px solid #ef4444}
     `);
 
-    function setStatus(t) { var e = document.getElementById('stxt'); if (e) e.textContent = t; }
+    var btnText = 'Import Locker';
+    function setStatus(t) { 
+        btnText = t;
+        var btn = document.getElementById('ibtn');
+        if (btn) btn.textContent = t;
+    }
     function toast(msg, type) {
         var t = document.getElementById('fngg-toast');
         if (!t) return;
@@ -238,12 +264,17 @@
         if (!uel || !ael) return;
 
         if (session) {
-            uel.innerHTML = '<div class="ucard"><img src="'+LOGO+'"><div class="info"><div class="name">'+session.displayName+'</div><div class="status">Connected</div></div><button class="lout" id="lout">Logout</button></div>';
-            ael.innerHTML = '<button class="btn btn-g" id="ibtn"'+(working?' disabled':'')+'>'+(working?'Importing...':'Import Locker')+'</button>';
+            var avatar = session.skinIcon || LOGO;
+            uel.innerHTML = '<div class="ucard"><img src="'+avatar+'"><div class="info"><div class="name">'+session.displayName+'</div><div class="status">Connected</div></div><button class="lout" id="lout">Logout</button></div>';
+            ael.innerHTML = '<button class="btn btn-g" id="ibtn"'+(working?' disabled':'')+'>'+btnText+'</button>';
             document.getElementById('lout').onclick = logout;
             document.getElementById('ibtn').onclick = doImport;
+        } else if (pollInterval) {
+            uel.innerHTML = '<div class="ucard"><div class="spin" style="margin:0;width:24px;height:24px;border-width:2px"></div><div class="info"><div class="name">Waiting for login...</div><div class="status" style="color:#f0db4f">Complete login in browser</div></div></div>';
+            ael.innerHTML = '<button class="btn btn-x" id="cbtn" style="margin:0">Cancel</button>';
+            document.getElementById('cbtn').onclick = cancelLogin;
         } else {
-            uel.innerHTML = '';
+            uel.innerHTML = '<div class="ucard"><div class="ucard-placeholder">🎮</div><div class="info"><div class="name">Not Connected</div><div class="status" style="color:#888">Link your account</div></div></div>';
             ael.innerHTML = '<button class="btn btn-y" id="lbtn">Connect Epic Account</button>';
             document.getElementById('lbtn').onclick = startLogin;
         }
@@ -254,20 +285,13 @@
 
         var p = document.createElement('div');
         p.id = 'fngg-panel';
-        p.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>Locker Import</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="ibtn2" title="Info">ⓘ</button><button class="fngg-hbtn" id="mbtn">▼</button></div></div><div class="body"><div id="usec"></div><div id="asec"></div><div class="stxt" id="stxt">Ready</div></div>';
+        p.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>Locker Import</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="ibtn2" title="Info">?</button></div></div><div class="body"><div id="usec"></div><div id="asec"></div></div>';
         document.body.appendChild(p);
 
-        var lm = document.createElement('div');
-        lm.id = 'lmodal';
-        lm.className = 'fngg-m';
-        lm.innerHTML = '<div class="mbox"><div class="mtitle">Epic Games Login</div><div class="mhint" style="margin:20px 0">Click the button below to login with your Epic Games account.</div><button class="btn btn-y" id="openbtn">Login with Epic Games</button><div class="spin"></div><div class="mhint">Waiting for login...</div><button class="btn btn-x" id="cbtn">Cancel</button></div>';
-        document.body.appendChild(lm);
-
-        var im = document.createElement('div');
-        im.id = 'imodal';
-        im.className = 'fngg-m';
-        im.innerHTML = '<div class="mbox"><div class="mtitle">Info</div><div class="isec"><h3>What does this do?</h3><p>This script connects to your Epic Games account and reads all your Fortnite cosmetics (skins, pickaxes, emotes, etc). It then generates a link for fortnite.gg that shows your entire locker. Everything gets sorted automatically by type and rarity so it looks nice.</p></div><div class="isec"><h3>Is this safe?</h3><p>Yep! The login uses Epic\'s official Device Code flow. Your password is never entered here or sent anywhere. The script only gets a temporary token that lets it read your locker, nothing else. Token expires after about 2 hours, then you\'d need to login again.</p></div><div class="isec"><h3>Settings</h3><div class="srow"><div><div class="slbl">Support Creator</div><div class="sdesc">Sets code "'+SAC+'" in Fortnite</div></div><div class="tog'+(getSettings().supportCreator?' on':'')+'" id="stog"></div></div></div><div class="isec" style="margin-top:20px;padding-top:16px;border-top:1px solid #333"><p style="color:#f0db4f;font-size:13px;font-weight:600">Made by <a href="https://github.com/ItsReepze" target="_blank" style="color:#f0db4f">Reepze</a></p><p style="color:#666;font-size:10px;margin-top:6px">Not affiliated with Epic Games or fortnite.gg</p><p style="color:#d9534f;font-size:10px;margin-top:6px">⚠️ Only get this from <a href="https://github.com/ItsReepze/fngg-locker-importer" target="_blank" style="color:#d9534f">GitHub</a> or <a href="https://greasyfork.org/en/scripts/563780" target="_blank" style="color:#d9534f">Greasyfork</a></p></div><div class="ver">v2.4</div><button class="btn btn-x" id="cibtn">Close</button></div>';
-        document.body.appendChild(im);
+        var ip = document.createElement('div');
+        ip.id = 'fngg-info';
+        ip.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>Info</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="cibtn">✕</button></div></div><div class="body"><div class="isec"><h3>🎯 What does this do?</h3><p>Imports your entire Fortnite locker to fortnite.gg with one click. All cosmetics (skins, pickaxes, emotes, etc.) get sorted automatically by type and rarity.</p></div><div class="isec"><h3>🔐 Is this safe?</h3><p>100% safe! Uses Epic\'s official Device Code authentication. Your password never touches this script, you login directly on Epic\'s website.</p></div><div class="isec"><h3>⚡ How it works</h3><p>1. Click "Connect Epic Account"<br>2. Login on Epic\'s website<br>3. Click "Import Locker"<br>4. Done! Your locker is updated.</p></div><div class="isec"><h3>🔑 Token Info</h3><p>The access token expires after ~2 hours. After that, simply reconnect. We never store your password.</p></div><div class="isec"><h3>❤️ Support me</h3><p>If you like this tool, use Creator Code <strong style="color:#f0db4f">'+SAC+'</strong> in the Fortnite Item Shop!</p></div><div class="isec footer"><p class="credit">Made with ❤️ by <a href="https://github.com/ItsReepze" target="_blank">Reepze</a></p><p class="links"><a href="https://github.com/ItsReepze/fngg-locker-importer" target="_blank">GitHub</a> · <a href="https://greasyfork.org/en/scripts/563780" target="_blank">Greasyfork</a></p><p class="disclaimer">Not affiliated with Epic Games or fortnite.gg</p><p class="version">v2.5</p></div></div>';
+        document.body.appendChild(ip);
 
         var sm = document.createElement('div');
         sm.id = 'smodal';
@@ -279,39 +303,47 @@
         te.id = 'fngg-toast';
         document.body.appendChild(te);
 
+        var tab = document.createElement('div');
+        tab.id = 'fngg-tab';
+        tab.innerHTML = '›';
+        tab.className = 'open';
+        document.body.appendChild(tab);
+
         if (getSettings().panelMin) {
             p.classList.add('min');
-            document.getElementById('mbtn').textContent = '▲';
-        }
-        var savedX = getSettings().panelX;
-        var savedY = getSettings().panelY;
-        if (savedX !== undefined && savedY !== undefined) {
-            p.style.right = 'auto';
-            p.style.left = savedX + 'px';
-            p.style.top = savedY + 'px';
+            tab.classList.remove('open');
+            tab.innerHTML = '‹';
         }
 
-        document.getElementById('mbtn').onclick = function() {
-            p.classList.toggle('min');
-            var isMin = p.classList.contains('min');
-            this.textContent = isMin ? '▲' : '▼';
+        var infoActive = !getSettings().infoClosed;
+        if (infoActive && !getSettings().panelMin) {
+            document.getElementById('fngg-info').classList.add('show');
+        }
+
+        function togglePanel() {
+            var isMin = p.classList.toggle('min');
+            tab.classList.toggle('open', !isMin);
+            tab.innerHTML = isMin ? '‹' : '›';
             saveSetting('panelMin', isMin);
-        };
-        document.getElementById('ibtn2').onclick = function() {
-            document.getElementById('stog').classList.toggle('on', getSettings().supportCreator === true);
-            modal('imodal', true);
-        };
-        document.getElementById('cibtn').onclick = function() { modal('imodal', false); };
-        document.getElementById('openbtn').onclick = function() { if (verifyUri) window.open(verifyUri, '_blank'); };
-        document.getElementById('cbtn').onclick = cancelLogin;
-        lm.onclick = function(e) { if (e.target === lm) cancelLogin(); };
-        im.onclick = function(e) { if (e.target === im) modal('imodal', false); };
+            
+            var info = document.getElementById('fngg-info');
+            if (infoActive) {
+                info.classList.toggle('show', !isMin);
+            }
+        }
 
-        document.getElementById('stog').onclick = function() {
-            var on = !this.classList.contains('on');
-            this.classList.toggle('on', on);
-            saveSetting('supportCreator', on);
-            toast(on ? 'Support enabled ❤️' : 'Support disabled', 'ok');
+        tab.onclick = togglePanel;
+        document.getElementById('ibtn2').onclick = function() {
+            var info = document.getElementById('fngg-info');
+            var willShow = !info.classList.contains('show');
+            infoActive = willShow;
+            saveSetting('infoClosed', !willShow);
+            info.classList.toggle('show', willShow);
+        };
+        document.getElementById('cibtn').onclick = function() { 
+            infoActive = false;
+            saveSetting('infoClosed', true);
+            document.getElementById('fngg-info').classList.remove('show');
         };
 
         document.getElementById('ybtn').onclick = async function() {
@@ -330,26 +362,6 @@
             if (url) location.href = url; else location.reload();
         };
 
-        var drag = false, sx, sy, ox, oy;
-        p.querySelector('.fngg-hdr').onmousedown = function(e) {
-            if (e.target.tagName === 'BUTTON') return;
-            drag = true; sx = e.clientX; sy = e.clientY;
-            ox = p.offsetLeft; oy = p.offsetTop;
-            p.style.right = 'auto'; p.style.left = ox + 'px';
-        };
-        document.onmousemove = function(e) {
-            if (!drag) return;
-            p.style.left = (ox + e.clientX - sx) + 'px';
-            p.style.top = (oy + e.clientY - sy) + 'px';
-        };
-        document.onmouseup = function() {
-            if (drag) {
-                saveSetting('panelX', parseInt(p.style.left));
-                saveSetting('panelY', parseInt(p.style.top));
-            }
-            drag = false;
-        };
-
         initSession();
     }
 
@@ -358,11 +370,26 @@
         if (s) {
             try {
                 var r = await http('GET', epicBase + '/account/api/oauth/verify', { 'Authorization': 'Bearer ' + s.accessToken });
-                if (r.status === 200) session = s;
+                if (r.status === 200) {
+                    session = s;
+                    fetchCurrentSkin();
+                }
                 else clearSession();
             } catch(e) { clearSession(); }
         }
         updateUI();
+    }
+
+    async function fetchCurrentSkin() {
+        if (!session) return;
+        try {
+            // Get the avatar image from fortnite.gg (class="avatar")
+            var avatarImg = document.querySelector('img.avatar');
+            if (avatarImg && avatarImg.src) {
+                session.skinIcon = avatarImg.src;
+                updateUI();
+            }
+        } catch(e) {}
     }
 
     async function startLogin() {
@@ -383,11 +410,11 @@
             deviceCode = a2.data.device_code;
             verifyUri = a2.data.verification_uri_complete;
 
-            modal('lmodal', true);
-            setStatus('Waiting...');
+            window.open(verifyUri, '_blank');
             pollInterval = setInterval(pollLogin, 3000);
+            updateUI();
         } catch(e) {
-            setStatus('Login failed');
+            setStatus('Connect Epic Account');
             toast('Couldn\'t connect to Epic', 'err');
         }
     }
@@ -404,10 +431,10 @@
                 deviceCode = null; verifyUri = null;
                 session = { accessToken: r.data.access_token, accountId: r.data.account_id, displayName: r.data.displayName };
                 saveSession(session);
-                modal('lmodal', false);
+                setStatus('Import Locker');
                 updateUI();
-                setStatus('Connected!');
                 toast('Hey ' + session.displayName + '!', 'ok');
+                fetchCurrentSkin();
                 if (getSettings().supportCreator) setSAC();
             }
         } catch(e) {}
@@ -416,13 +443,13 @@
     function cancelLogin() {
         if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
         deviceCode = null; verifyUri = null;
-        modal('lmodal', false);
-        setStatus('Ready');
+        setStatus('Connect Epic Account');
+        updateUI();
     }
 
     function logout() {
         clearSession(); updateUI();
-        setStatus('Ready');
+        setStatus('Import Locker');
         toast('Logged out', 'ok');
     }
 
