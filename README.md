@@ -2,7 +2,7 @@
 
 Import your entire Fortnite locker to fortnite.gg with one click. No more manually adding items.
 
-![Version](https://img.shields.io/badge/version-2.4-blue)
+![Version](https://img.shields.io/badge/version-2.5-blue)
 ![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)
 
 ## ⚠️ Important
@@ -24,6 +24,9 @@ Connect your Epic account, click import, done. The script reads all your cosmeti
 - One click import
 - Auto sorting (skins first, then backblings, pickaxes, etc)
 - Secure Epic login (your password never touches the script)
+- Modern glassmorphism UI design
+- Uses fortnite.gg's native font
+- Shows your equipped skin from your profile
 - Stays logged in for about 2 hours
 
 ## Is this safe?
@@ -44,10 +47,10 @@ Yes. Heres why:
 ## How to use
 
 1. Go to fortnite.gg/locker
-2. Click "Link Epic Account"
-3. Login on Epic and click Confirm
+2. Click "Connect Epic Account"
+3. Login on Epic's website
 4. Click "Import Locker"
-5. Wait a bit, done
+5. Done!
 
 ## Screenshots
 
@@ -78,6 +81,16 @@ The script can only show items that fortnite.gg has in their database. Brand new
 If you like this, use code **Reepze** in the item shop!
 
 ## Changelog
+
+### v2.5
+- Complete UI redesign with glassmorphism effect
+- Uses fortnite.gg's native font for seamless integration
+- Shows your equipped skin from fortnite.gg profile
+- New slide-out Info panel (opens by default, remembers state)
+- Simplified login flow (opens Epic directly, no extra modal)
+- Panel and Info now 10% larger for better readability
+- Info panel scrollable on smaller screens
+- Removed Settings toggle (SAC prompt after import instead)
 
 ### v2.4
 - Fixed logo not displaying in Firefox (switched to SVG)
