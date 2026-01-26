@@ -1,66 +1,103 @@
 # Fortnite.gg Locker Importer
 
-Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with one click.
+Import your entire Fortnite locker to fortnite.gg with one click. No more manually adding items.
 
-![Version](https://img.shields.io/badge/version-2.3-blue)
+![Version](https://img.shields.io/badge/version-2.4-blue)
 ![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)
+
+## ⚠️ Important
+
+This project is **not affiliated with Epic Games or fortnite.gg**. Its an unofficial fan project made by [Reepze](https://github.com/ItsReepze).
+
+**Only download this script from official sources:**
+- GitHub: https://github.com/ItsReepze/fngg-locker-importer
+- Greasyfork: https://greasyfork.org/en/scripts/563780
+
+If you got this from anywhere else, dont use it. Could be a fake trying to steal your account.
+
+## What it does
+
+Connect your Epic account, click import, done. The script reads all your cosmetics and creates a fortnite.gg locker link. Everything gets sorted by type and rarity automatically.
 
 ## Features
 
-- **One-click import** - Connect your Epic account and import all your cosmetics
-- **Auto-sorting** - Items get sorted by type (outfits first, then backblings, pickaxes...) and rarity
-- **Secure login** - Uses Epic's official Device Code flow, your password never touches the script
-- **Session saving** - Stay logged in for ~2 hours, no need to re-authenticate every time
+- One click import
+- Auto sorting (skins first, then backblings, pickaxes, etc)
+- Secure Epic login (your password never touches the script)
+- Stays logged in for about 2 hours
+
+## Is this safe?
+
+Yes. Heres why:
+
+- **Open source** so you can check the code yourself
+- **No password entry** in the script, you login on Epics official website
+- **Read only access**, cant modify your account or buy anything
+- **No data collection**, nothing gets sent anywhere except Epic and fortnite.gg
+- **Token expires** after roughly 2 hours
 
 ## Installation
 
 1. Install [Tampermonkey](https://www.tampermonkey.net/) for your browser
 2. Install the script from [Greasyfork](https://greasyfork.org/en/scripts/563780)
 
-## How to Use
+## How to use
 
-1. Go to [fortnite.gg/locker](https://fortnite.gg/locker)
-2. Click **"Link Epic Account"** in the panel
-3. Login to Epic Games and click **"Confirm"**
-4. Click **"Import Locker"** and wait for it to finish
-5. Done! You'll be redirected to your locker page
+1. Go to fortnite.gg/locker
+2. Click "Link Epic Account"
+3. Login on Epic and click Confirm
+4. Click "Import Locker"
+5. Wait a bit, done
 
 ## Screenshots
 
-### Panel
 ![Panel](images/panel.png)
 
-### Login
 ![Login](images/login.png)
 
-### Confirm
-![confirm](images/confirm.png)
-
-### Connected
 ![Connected](images/connected.png)
-
-### Importing
-![Importing](images/import.png)
 
 ## FAQ
 
-**Is this safe?**
-Yes. The script uses Epic's official OAuth flow. Your password is never entered in the script, you login directly on Epic's website. The script only receives a temporary token that can read your locker, nothing else.
+**Can I get banned?**
+This only reads your locker data, same as looking at your locker ingame. Doesnt modify anything or give gameplay advantages. But Epic doesnt officially support third party tools so use at your own risk.
 
-**Why do I need to login again after a while?**
-The token expires after ~2 hours for security reasons. This is normal.
+**Why do I need to login again?**
+Token expires after about 2 hours. Thats normal and for security.
 
-**Some items are missing?**
-The script can only show items that exist in fortnite.gg's database. Very new items might not be added yet.
+**Some items missing?**
+The script can only show items that fortnite.gg has in their database. Brand new items might not be there yet.
+
+## Known Issues
+
+- Very new items might be missing if fortnite.gg hasnt added them to their database yet
+- Doesnt work when fortnite.gg is in maintenance mode
 
 ## Support
 
-If you like this script, you can support me by using creator code **"Reepze"** in the Fortnite item shop!
+If you like this, use code **Reepze** in the item shop!
+
+## Changelog
+
+### v2.4
+- Fixed logo not displaying in Firefox (switched to SVG)
+- Added security disclaimers and official source warnings
+- Simplified login modal (removed manual code entry)
+- Added author branding and info panel
+- Code cleanup and ESLint fixes
+
+### v2.2
+- Added SAC (Support-A-Creator) prompt after import
+- Improved sorting for Festival instruments
+- Better error handling
+
+### v2.1
+- Initial public release
+- One-click locker import
+- Auto sorting by type and rarity
 
 ## License
 
-All Rights Reserved - you can use it, but don't redistribute or modify without permission.
+All Rights Reserved. You can use it but dont redistribute or modify without permission.
 
----
-
-Made with ❤️ by [Reepze](https://fortnite.gg/@reepze)
+Made by [Reepze](https://github.com/ItsReepze)
