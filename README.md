@@ -2,7 +2,7 @@
 
 Import your entire Fortnite locker to fortnite.gg with one click. No more manually adding items.
 
-![Version](https://img.shields.io/badge/version-2.5-blue)
+![Version](https://img.shields.io/badge/version-2.6-blue)
 ![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)
 
 ## ⚠️ Important
@@ -82,32 +82,10 @@ If you like this, use code **Reepze** in the item shop!
 
 ## Changelog
 
-### v2.5
-- Complete UI redesign with glassmorphism effect
-- Uses fortnite.gg's native font for seamless integration
-- Shows your equipped skin from fortnite.gg profile
-- New slide-out Info panel (opens by default, remembers state)
-- Simplified login flow (opens Epic directly, no extra modal)
-- Panel and Info now 10% larger for better readability
-- Info panel scrollable on smaller screens
-- Removed Settings toggle (SAC prompt after import instead)
-
-### v2.4
-- Fixed logo not displaying in Firefox (switched to SVG)
-- Added security disclaimers and official source warnings
-- Simplified login modal (removed manual code entry)
-- Added author branding and info panel
-- Code cleanup and ESLint fixes
-
-### v2.2
-- Added SAC (Support-A-Creator) prompt after import
-- Improved sorting for Festival instruments
-- Better error handling
-
-### v2.1
-- Initial public release
-- One-click locker import
-- Auto sorting by type and rarity
+### v2.6
+- Slimmer UI with reduced padding
+- Info panel dynamically positions (never overlaps main panel)
+- Fixed clipping issues on scaled screens
 
 ## License
 
