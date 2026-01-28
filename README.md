@@ -2,7 +2,7 @@
 
 Import your entire Fortnite locker to fortnite.gg with one click. No more manually adding items.
 
-![Version](https://img.shields.io/badge/version-2.6-blue)
+![Version](https://img.shields.io/badge/version-2.7-blue)
 ![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)
 
 ## ⚠️ Important
@@ -82,10 +82,11 @@ If you like this, use code **Reepze** in the item shop!
 
 ## Changelog
 
-### v2.6
-- Slimmer UI with reduced padding
-- Info panel dynamically positions (never overlaps main panel)
-- Fixed clipping issues on scaled screens
+### v2.7
+- Large locker support (6000+ items)
+- Automatic fallback to numeric sorting for huge lockers
+- Maximum compression for smaller URLs
+- Cleaner code
 
 ## License
 
