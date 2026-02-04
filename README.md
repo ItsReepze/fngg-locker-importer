@@ -2,7 +2,7 @@
 
 Import your entire Fortnite locker to fortnite.gg with one click. No more manually adding items.
 
-![Version](https://img.shields.io/badge/version-2.7-blue)
+![Version](https://img.shields.io/badge/version-3.0-blue)
 ![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)
 
 ## ⚠️ Important
@@ -71,22 +71,9 @@ Token expires after about 2 hours. Thats normal and for security.
 **Some items missing?**
 The script can only show items that fortnite.gg has in their database. Brand new items might not be there yet.
 
-## Known Issues
-
-- Very new items might be missing if fortnite.gg hasnt added them to their database yet
-- Doesnt work when fortnite.gg is in maintenance mode
-
 ## Support
 
 If you like this, use code **Reepze** in the item shop!
-
-## Changelog
-
-### v2.7
-- Large locker support (6000+ items)
-- Automatic fallback to numeric sorting for huge lockers
-- Maximum compression for smaller URLs
-- Cleaner code
 
 ## License
 
