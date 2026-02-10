@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fortnite.gg Locker Importer
 // @namespace    https://fortnite.gg/
-// @version      3.0
+// @version      3.1
 // @description  Import your Fortnite locker to Fortnite.gg
 // @author       ItsReepze
 // @match        https://fortnite.gg/*
@@ -45,7 +45,10 @@
     if (!location.pathname.toLowerCase().includes('/locker')) return;
 
     var SAC = 'Reepze';
-    var VERSION = '3.0';
+    var VERSION = '3.1';
+    var SESSION_TIMEOUT = 7200000;
+    var POLL_INTERVAL = 3000;
+    var AUTO_LOGOUT_DELAY = 2000;
     var switchToken = 'OThmN2U0MmMyZTNhNGY4NmE3NGViNDNmYmI0MWVkMzk6MGEyNDQ5YTItMDAxYS00NTFlLWFmZWMtM2U4MTI5MDFjNGQ3';
     var epicBase = 'https://account-public-service-prod.ol.epicgames.com';
     var fnBase = 'https://fortnite-public-service-prod11.ol.epicgames.com';
@@ -118,7 +121,7 @@
     function loadSession() {
         try {
             var d = JSON.parse(GM_getValue('epic_session'));
-            if (!d || Date.now() - d.ts > 7200000) return null;
+            if (!d || Date.now() - d.ts > SESSION_TIMEOUT) return null;
             return { accessToken: d.token, accountId: d.id, displayName: d.name };
         } catch(e) { return null; }
     }
@@ -126,6 +129,8 @@
         GM_deleteValue('epic_session');
         session = null;
     }
+    
+    function $(id) { return document.getElementById(id); }
 
     function http(method, url, headers, body) {
         return new Promise(function(res, rej) {
@@ -160,6 +165,30 @@
         }
         return rarityScore[item.rarity] || 100;
     }
+    
+    function processItemsFromProfile(itemsObj, fngg, cdb, seen, skipped, unmappedItems) {
+        var result = [];
+        for (var key in itemsObj) {
+            var tid = itemsObj[key].templateId || '';
+            if (tid.indexOf(':') === -1) { skipped.noBid++; continue; }
+            var bid = tid.split(':')[1].toLowerCase();
+            var fid = fngg[bid];
+            if (!fid || isNaN(fid)) { 
+                skipped.noMapping++; 
+                unmappedItems.push(bid);
+                continue; 
+            }
+            if (seen[fid]) { skipped.duplicate++; continue; }
+            seen[fid] = true;
+
+            var meta = cdb[bid] || {};
+            var type = normalizeType(meta.type);
+            if (!type || type === 'unknown') type = guessType(bid) || 'unknown';
+
+            result.push({ fid: fid, name: meta.name || bid, type: type, rarity: meta.rarity || 'common', series: meta.series || null });
+        }
+        return result;
+    }
 
     GM_addStyle(`
         #fngg-panel{position:fixed;top:60px;right:0;width:350px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-right:0;border-radius:16px 0 0 16px;font-family:fn,sans-serif;z-index:999999;box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;transition:transform .3s ease}
@@ -169,6 +198,8 @@
         #fngg-tab.open{right:350px}
         #fngg-info{position:fixed;top:260px;bottom:15px;right:0;width:350px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-right:0;border-radius:16px 0 0 16px;font-family:fn,sans-serif;z-index:999998;box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;transform:translateX(100%);opacity:0;transition:all .3s ease;pointer-events:none;overflow-y:auto}
         #fngg-info.show{transform:translateX(0);opacity:1;pointer-events:auto}
+        #fngg-debug{position:fixed;top:60px;bottom:15px;left:15px;width:400px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-radius:16px;font-family:fn,sans-serif;z-index:999997;box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;transform:translateX(-120%);opacity:0;transition:all .3s ease;pointer-events:none;overflow-y:auto}
+        #fngg-debug.show{transform:translateX(0);opacity:1;pointer-events:auto}
         .fngg-hdr{background:linear-gradient(135deg,rgba(45,45,50,.5) 0%,rgba(35,35,40,.5) 100%);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08);border-radius:16px 0 0 0}
         .fngg-brand{display:flex;align-items:center;gap:10px}
         .fngg-brand img{width:30px;height:30px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
@@ -177,6 +208,7 @@
         .fngg-hbtn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#888;width:26px;height:26px;border-radius:6px;cursor:pointer;transition:all .2s;font-size:12px}
         .fngg-hbtn:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.15);color:#fff}
         .body{padding:12px}
+        #fngg-debug .body{display:flex;flex-direction:column;height:calc(100% - 51px)}
         .ucard{display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;margin-bottom:10px}
         .ucard img{width:42px;height:42px;border-radius:10px;object-fit:cover;box-shadow:0 0 12px rgba(240,219,79,.2),0 2px 8px rgba(0,0,0,.3)}
         .ucard-placeholder{width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:18px}
@@ -244,55 +276,74 @@
     var btnText = 'Import Locker';
     function setStatus(t) { 
         btnText = t;
-        var btn = document.getElementById('ibtn');
+        var btn = $('ibtn');
         if (btn) btn.textContent = t;
     }
     function toast(msg, type) {
-        var t = document.getElementById('fngg-toast');
+        var t = $('fngg-toast');
         if (!t) return;
         t.textContent = msg;
         t.className = 'show ' + (type || '');
         setTimeout(function() { t.className = ''; }, 3000);
     }
     function modal(id, show) {
-        var m = document.getElementById(id);
+        var m = $(id);
         if (m) m.classList.toggle('show', show);
     }
 
     function updateUI() {
-        var uel = document.getElementById('usec');
-        var ael = document.getElementById('asec');
+        var uel = $('usec');
+        var ael = $('asec');
         if (!uel || !ael) return;
 
         if (session) {
             var avatar = session.skinIcon || LOGO;
-            uel.innerHTML = '<div class="ucard"><img src="'+avatar+'"><div class="info"><div class="name">'+session.displayName+'</div><div class="status">Connected</div></div><button class="lout" id="lout">Logout</button></div>';
+            var s = getSettings();
+            var autoLogout = s.autoLogout === undefined ? true : s.autoLogout;
+            var lockIcon = autoLogout ? '🔓' : '🔒';
+            var lockText = autoLogout ? 'Auto<br>Logout' : 'Keep<br>Login';
+            var lockTitle = autoLogout ? 'Click to disable auto-logout' : 'Click to enable auto-logout';
+            var lockStyle = autoLogout 
+                ? 'background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#ef4444' 
+                : 'background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.2);color:#22c55e';
+            
+            uel.innerHTML = '<div class="ucard"><img src="'+avatar+'"><div class="info"><div class="name">'+session.displayName+'</div><div class="status">Connected</div></div><button class="lout" id="autoLogoutBtn" style="width:52px;margin-right:6px;padding:4px;font-size:14px;line-height:1.2;'+lockStyle+'" title="'+lockTitle+'">'+lockIcon+'<div style="font-size:8px;margin-top:2px;text-transform:uppercase;letter-spacing:0">'+lockText+'</div></button><button class="lout" id="lout">Logout</button></div>';
             ael.innerHTML = '<button class="btn btn-g" id="ibtn"'+(working?' disabled':'')+'>'+btnText+'</button>';
-            document.getElementById('lout').onclick = logout;
-            document.getElementById('ibtn').onclick = doImport;
+            
+            $('lout').onclick = logout;
+            $('ibtn').onclick = doImport;
+            $('autoLogoutBtn').onclick = function() {
+                saveSetting('autoLogout', !autoLogout);
+                updateUI();
+            };
         } else if (pollInterval) {
             uel.innerHTML = '<div class="ucard"><div class="spin" style="margin:0;width:24px;height:24px;border-width:2px"></div><div class="info"><div class="name">Waiting for login...</div><div class="status" style="color:#f0db4f">Complete login in browser</div></div></div>';
             ael.innerHTML = '<button class="btn btn-x" id="cbtn" style="margin:0">Cancel</button>';
-            document.getElementById('cbtn').onclick = cancelLogin;
+            $('cbtn').onclick = cancelLogin;
         } else {
             uel.innerHTML = '<div class="ucard"><div class="ucard-placeholder">🎮</div><div class="info"><div class="name">Not Connected</div><div class="status" style="color:#888">Link your account</div></div></div>';
             ael.innerHTML = '<button class="btn btn-y" id="lbtn">Connect Epic Account</button>';
-            document.getElementById('lbtn').onclick = startLogin;
+            $('lbtn').onclick = startLogin;
         }
     }
 
     function createUI() {
-        if (document.getElementById('fngg-panel')) return;
+        if ($('fngg-panel')) return;
 
         var p = document.createElement('div');
         p.id = 'fngg-panel';
-        p.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>Locker Import</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="ibtn2" title="Info">?</button></div></div><div class="body"><div id="usec"></div><div id="asec"></div></div>';
+        p.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>Locker Import</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="dbtn" title="Debug">🐛</button><button class="fngg-hbtn" id="ibtn2" title="Info">?</button></div></div><div class="body"><div id="usec"></div><div id="asec"></div></div>';
         document.body.appendChild(p);
 
         var ip = document.createElement('div');
         ip.id = 'fngg-info';
         ip.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>Info</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="cibtn">✕</button></div></div><div class="body"><div class="isec"><h3>🎯 What does this do?</h3><p>Imports your entire Fortnite locker to fortnite.gg with one click. All cosmetics (skins, pickaxes, emotes, etc.) get sorted automatically by type and rarity.</p></div><div class="isec"><h3>🔐 Is this safe?</h3><p>100% safe! Uses Epic\'s official Device Code authentication. Your password never touches this script, you login directly on Epic\'s website.</p></div><div class="isec"><h3>⚡ How it works</h3><p>1. Click "Connect Epic Account"<br>2. Login on Epic\'s website<br>3. Click "Import Locker"<br>4. Done! Your locker is updated.</p></div><div class="isec"><h3>🔑 Token Info</h3><p>The access token expires after ~2 hours. After that, simply reconnect. We never store your password.</p></div><div class="isec"><h3>❤️ Support me</h3><p>If you like this tool, use Creator Code <strong style="color:#f0db4f">'+SAC+'</strong> in the Fortnite Item Shop!</p></div><div class="isec footer"><p class="credit">Made with ❤️ by <a href="https://github.com/ItsReepze" target="_blank">Reepze</a></p><p class="links"><a href="https://github.com/ItsReepze/fngg-locker-importer" target="_blank">GitHub</a> · <a href="https://greasyfork.org/en/scripts/563780" target="_blank">Greasyfork</a></p><p class="disclaimer">Not affiliated with Epic Games or fortnite.gg</p><p class="version">v'+VERSION+'</p></div></div>';
         document.body.appendChild(ip);
+
+        var dp = document.createElement('div');
+        dp.id = 'fngg-debug';
+        dp.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>Debug Console</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="cdbtn">✕</button></div></div><div class="body"><div class="isec"><h3>📊 Import Statistics</h3><p id="debug-stats">No import data yet. Run an import to see statistics.</p></div><div class="isec" style="flex:1;display:flex;flex-direction:column"><h3>⚠️ Unmapped Items</h3><p style="font-size:11px;color:#888;margin-bottom:8px;line-height:1.4">These are NOT cosmetics. They are quest trackers, tokens, schedules, and other backend items that don\'t exist in FortniteGG\'s database. This is completely normal.</p><div id="debug-unmapped" style="font-size:11px;color:#999;overflow-y:auto;font-family:monospace;line-height:1.8;flex:1;word-break:break-all;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;border:1px solid rgba(255,255,255,.05);white-space:pre-wrap">No data yet.</div></div></div>';
+        document.body.appendChild(dp);
 
         var sm = document.createElement('div');
         sm.id = 'smodal';
@@ -311,8 +362,8 @@
         document.body.appendChild(tab);
 
         function updateInfoPosition() {
-            var panel = document.getElementById('fngg-panel');
-            var info = document.getElementById('fngg-info');
+            var panel = $('fngg-panel');
+            var info = $('fngg-info');
             if (panel && info) {
                 var panelRect = panel.getBoundingClientRect();
                 var panelBottom = panelRect.bottom + 10;
@@ -321,7 +372,7 @@
         }
 
         var observer = new MutationObserver(function() {
-            if (document.getElementById('fngg-info').classList.contains('show')) {
+            if ($('fngg-info').classList.contains('show')) {
                 setTimeout(updateInfoPosition, 10);
             }
         });
@@ -335,12 +386,12 @@
 
         var infoActive = !getSettings().infoClosed;
         if (infoActive && !getSettings().panelMin) {
-            document.getElementById('fngg-info').classList.add('show');
+            $('fngg-info').classList.add('show');
             setTimeout(updateInfoPosition, 50);
         }
 
         window.addEventListener('resize', function() {
-            if (document.getElementById('fngg-info').classList.contains('show')) {
+            if ($('fngg-info').classList.contains('show')) {
                 updateInfoPosition();
             }
         });
@@ -351,7 +402,7 @@
             tab.innerHTML = isMin ? '‹' : '›';
             saveSetting('panelMin', isMin);
             
-            var info = document.getElementById('fngg-info');
+            var info = $('fngg-info');
             if (infoActive) {
                 info.classList.toggle('show', !isMin);
                 if (!isMin) setTimeout(updateInfoPosition, 50);
@@ -359,37 +410,73 @@
         }
 
         tab.onclick = togglePanel;
-        document.getElementById('ibtn2').onclick = function() {
-            var info = document.getElementById('fngg-info');
+        $('ibtn2').onclick = function() {
+            var info = $('fngg-info');
             var willShow = !info.classList.contains('show');
             infoActive = willShow;
             saveSetting('infoClosed', !willShow);
             info.classList.toggle('show', willShow);
             if (willShow) setTimeout(updateInfoPosition, 50);
         };
-        document.getElementById('cibtn').onclick = function() { 
+        $('cibtn').onclick = function() { 
             infoActive = false;
             saveSetting('infoClosed', true);
-            document.getElementById('fngg-info').classList.remove('show');
+            $('fngg-info').classList.remove('show');
         };
 
-        document.getElementById('ybtn').onclick = async function() {
+        var debugActive = !getSettings().debugClosed;
+        if (debugActive) $('fngg-debug').classList.add('show');
+        
+        $('dbtn').onclick = function() {
+            var debug = $('fngg-debug');
+            var willShow = !debug.classList.contains('show');
+            debugActive = willShow;
+            saveSetting('debugClosed', !willShow);
+            debug.classList.toggle('show', willShow);
+        };
+        $('cdbtn').onclick = function() {
+            debugActive = false;
+            saveSetting('debugClosed', true);
+            $('fngg-debug').classList.remove('show');
+        };
+
+        $('ybtn').onclick = async function() {
             saveSetting('supportCreator', true);
             modal('smodal', false);
             var ok = await setSAC();
             toast(ok ? 'Thanks! ❤️' : 'Couldn\'t set code', ok ? 'ok' : 'err');
             setTimeout(function() {
-                var url = document.getElementById('smodal').dataset.url;
+                var url = $('smodal').dataset.url;
                 if (url) location.href = url;
             }, 800);
         };
-        document.getElementById('nbtn').onclick = function() {
+        $('nbtn').onclick = function() {
             modal('smodal', false);
-            var url = document.getElementById('smodal').dataset.url;
+            var url = $('smodal').dataset.url;
             if (url) location.href = url;
         };
 
+        var debugData = GM_getValue('debugData', null);
+        if (debugData) {
+            try {
+                var data = JSON.parse(debugData);
+                var el = $('debug-stats');
+                if (el) el.innerHTML = data.stats || 'No import data yet.';
+                var unmappedEl = $('debug-unmapped');
+                if (unmappedEl) unmappedEl.textContent = data.unmapped || 'No data yet.';
+            } catch(e) {}
+        }
+
         initSession();
+        
+        setTimeout(function() {
+            if (GM_getValue('pendingAutoLogout', null) === 'true') {
+                GM_deleteValue('pendingAutoLogout');
+                clearSession();
+                updateUI();
+                toast('Logged out automatically', 'ok');
+            }
+        }, AUTO_LOGOUT_DELAY);
     }
 
     async function initSession() {
@@ -437,7 +524,7 @@
             verifyUri = a2.data.verification_uri_complete;
 
             window.open(verifyUri, '_blank');
-            pollInterval = setInterval(pollLogin, 3000);
+            pollInterval = setInterval(pollLogin, POLL_INTERVAL);
             updateUI();
         } catch(e) {
             setStatus('Connect Epic Account');
@@ -461,7 +548,6 @@
                 updateUI();
                 toast('Hey ' + session.displayName + '!', 'ok');
                 fetchCurrentSkin();
-                if (getSettings().supportCreator) setSAC();
             }
         } catch(e) {}
     }
@@ -552,7 +638,7 @@
                 'Authorization': 'Bearer ' + session.accessToken, 'Content-Type': 'application/json'
             }, '{}');
 
-            if (ar.status === 401) { clearSession(); updateUI(); toast('Session expired, login again', 'err'); setStatus('Session expired'); working = false; return; }
+            if (ar.status === 401) { clearSession(); updateUI(); toast('Session expired', 'err'); setStatus('Session expired'); working = false; return; }
             if (ar.status !== 200) { toast('Epic API error (' + ar.status + ')', 'err'); setStatus('Epic API error'); working = false; updateUI(); return; }
 
             var ap = ar.data && ar.data.profileChanges && ar.data.profileChanges[0] ? ar.data.profileChanges[0].profile : null;
@@ -574,22 +660,36 @@
 
             setStatus('Processing...');
             var items = [];
-            var all = Object.assign({}, ai, ci);
-            for (var key in all) {
-                var tid = all[key].templateId || '';
-                if (tid.indexOf(':') === -1) continue;
-                var bid = tid.split(':')[1].toLowerCase();
-                var fid = fngg[bid];
-                if (!fid || isNaN(fid)) continue;
-
-                var meta = cdb[bid] || {};
-                var type = normalizeType(meta.type);
-                if (!type || type === 'unknown') type = guessType(bid) || 'unknown';
-
-                items.push({ fid: fid, name: meta.name || bid, type: type, rarity: meta.rarity || 'common', series: meta.series || null });
-            }
+            var skipped = { noBid: 0, noMapping: 0, duplicate: 0 };
+            var unmappedItems = [];
+            var seen = {};
+            
+            items = items.concat(processItemsFromProfile(ai, fngg, cdb, seen, skipped, unmappedItems));
+            items = items.concat(processItemsFromProfile(ci, fngg, cdb, seen, skipped, unmappedItems));
 
             if (!items.length) { setStatus('Nothing found'); toast('No items', 'err'); working = false; updateUI(); return; }
+            
+            var totalItems = items.length;
+            var totalProcessed = totalItems + skipped.noBid + skipped.noMapping + skipped.duplicate;
+            var statsHTML = 
+                '<strong style="color:#4ade80">✓ ' + totalItems + ' items imported</strong><br>' +
+                '<span style="color:#888">Total processed: ' + totalProcessed + '</span><br><br>' +
+                '<strong style="color:#ef4444">⚠ ' + skipped.noMapping + ' items unmapped</strong><br>' +
+                '<span style="color:#888">' + skipped.duplicate + ' duplicates, ' + skipped.noBid + ' invalid</span>';
+            
+            var unmappedHTML;
+            if (unmappedItems.length > 0) {
+                unmappedHTML = unmappedItems.join('\n');
+            } else {
+                unmappedHTML = 'All items mapped successfully!';
+            }
+            
+            var el = $('debug-stats');
+            if (el) el.innerHTML = statsHTML;
+            var unmappedEl = $('debug-unmapped');
+            if (unmappedEl) unmappedEl.textContent = unmappedHTML;
+            
+            GM_setValue('debugData', JSON.stringify({ stats: statsHTML, unmapped: unmappedHTML }));
 
             setStatus('Sorting...');
             items.sort(function(a, b) {
@@ -660,11 +760,16 @@
             working = false; updateUI();
 
             var already = currentSAC && currentSAC.trim().toLowerCase() === SAC.toLowerCase();
+            
+            var s = getSettings();
+            if (s.autoLogout === undefined || s.autoLogout) GM_setValue('pendingAutoLogout', 'true');
+            
             if (already) {
                 setTimeout(function() { location.href = importUrl; }, 600);
             } else {
-                document.getElementById('smodal').dataset.url = importUrl;
-                document.getElementById('icnt').innerHTML = '<strong>' + items.length + ' items</strong>';
+                $('smodal').dataset.url = importUrl;
+                var el = $('icnt');
+                if (el) el.innerHTML = '<strong>' + items.length + ' items</strong>';
                 setTimeout(function() { modal('smodal', true); }, 400);
             }
         } catch(e) {
