@@ -15,17 +15,24 @@ Automatically import your entire Fortnite locker to Fortnite.gg in seconds.
 
 ## 📸 Screenshots
 
-![Login Panel](images/connect.png)
-*Simple one-click import interface*
-
-![Login Flow](images/login.png)
-*Secure Epic Games authentication*
-
-![Confirm Login](images/confirmation.png)
-*Confirm Epic Games Login*
-
-![Import](images/import.png)
-*Import your locker on Fortnite.gg in seconds*
+<table>
+  <tr>
+    <td><img src="images/connect.png" alt="Login Panel" width="400"/></td>
+    <td><img src="images/login.png" alt="Login Flow" width="400"/></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Simple one-click import interface</em></td>
+    <td align="center"><em>Secure Epic Games authentication</em></td>
+  </tr>
+  <tr>
+    <td><img src="images/confirmation.png" alt="Confirm Login" width="400"/></td>
+    <td><img src="images/import.png" alt="Import Success" width="400"/></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Confirm Epic Games Login</em></td>
+    <td align="center"><em>Import your locker in seconds</em></td>
+  </tr>
+</table>
 
 ## 🚀 Installation
 
