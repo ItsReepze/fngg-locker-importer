@@ -2,7 +2,7 @@
 
 Automatically import your entire Fortnite locker to Fortnite.gg in seconds.
 
-![Version](https://img.shields.io/badge/version-3.0-blue)
+![Version](https://img.shields.io/badge/version-3.1-blue)
 ![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)
 
 ## ✨ Features
