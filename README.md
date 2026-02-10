@@ -102,14 +102,6 @@ This is an unofficial, fan-made tool. Use at your own risk.
 - Make sure Tampermonkey/Violentmonkey is enabled
 - Check if the script is active on fortnite.gg
 
-## 📝 Changelog
-
-### v3.0 (Current)
-- Complete rewrite for reliability
-- Optimized compression algorithm
-- Better error handling
-- Improved UI/UX
-
 ## 💬 Support
 
 Found a bug or have a suggestion?
