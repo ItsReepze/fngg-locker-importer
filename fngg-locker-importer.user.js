@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fortnite.gg Locker Importer
 // @namespace    https://fortnite.gg/
-// @version      3.1
+// @version      3.2
 // @description  Import your Fortnite locker to Fortnite.gg
 // @author       ItsReepze
 // @match        https://fortnite.gg/*
@@ -11,6 +11,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_deleteValue
+// @grant        unsafeWindow
 // @connect      account-public-service-prod.ol.epicgames.com
 // @connect      fortnite-public-service-prod11.ol.epicgames.com
 // @connect      fortnite-api.com
@@ -39,13 +40,13 @@
  * If you got this from anywhere else, it might be a fake designed to steal your account.
  */
 
-(function() {
+(function () {
     'use strict';
 
     if (!location.pathname.toLowerCase().includes('/locker')) return;
 
     var SAC = 'Reepze';
-    var VERSION = '3.1';
+    var VERSION = '3.2';
     var SESSION_TIMEOUT = 7200000;
     var POLL_INTERVAL = 3000;
     var AUTO_LOGOUT_DELAY = 2000;
@@ -56,46 +57,161 @@
     var LOGO = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiID8+CjxzdmcgYmFzZVByb2ZpbGU9InRpbnkiIGhlaWdodD0iMjA0OCIgdmVyc2lvbj0iMS4yIiB3aWR0aD0iMjA0OCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczpldj0iaHR0cDovL3d3dy53My5vcmcvMjAwMS94bWwtZXZlbnRzIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+PGRlZnM+PGxpbmVhckdyYWRpZW50IGlkPSJncmFkaWVudCIgeDE9IjAiIHgyPSIxIiB5MT0iMCIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzhBMkJFMiIgLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwMEJGRkYiIC8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHBhdGggZD0iTTY5Nyw3MTMgTDY5Niw3MTQgTDY5Myw3MTQgTDY4OSw3MTggTDY4OSw4OTYgTDY5NCw5MDEgTDY5NCw5MDQgTDY5Niw5MDYgTDY5Nyw5MDYgTDY5OCw5MDcgTDY5OCw5MDggTDcwNCw5MTQgTDcwNSw5MTQgTDcwNiw5MTUgTDcwNiw5MTYgTDcxMCw5MjAgTDcxMSw5MjAgTDcxMiw5MjEgTDcxMiw5MjIgTDczMSw5NDEgTDczMSw5NDQgTDc0MSw5NTQgTDc0Miw5NTQgTDc0Myw5NTUgTDc0Myw5NTYgTDc0Niw5NTkgTDc0Nyw5NTkgTDc0OCw5NjAgTDc0OCw5NjEgTDc1NSw5NjggTDc1Niw5NjggTDc1Nyw5NjkgTDc1Nyw5NzAgTDc2MCw5NzMgTDc2MSw5NzMgTDc2Miw5NzQgTDc2Miw5NzUgTDc2OSw5ODIgTDc3MCw5ODIgTDc3MSw5ODMgTDc3MSw5ODQgTDc3NCw5ODcgTDc3NSw5ODcgTDc3Niw5ODggTDc3Niw5ODkgTDgwNSwxMDE4IEw4MDYsMTAxOCBMODA3LDEwMTkgTDgwNywxMDIwIEw4MTQsMTAyNyBMODE1LDEwMjcgTDgxNiwxMDI4IEw4MTYsMTAyOSBMODE5LDEwMzIgTDgyMCwxMDMyIEw4MjEsMTAzMyBMODIxLDEwMzQgTDgyOCwxMDQxIEw4MjksMTA0MSBMODMwLDEwNDIgTDgzMCwxMDQzIEw4MzcsMTA1MCBMODM4LDEwNTAgTDgzOSwxMDUxIEw4MzksMTA1MiBMODUwLDEwNjMgTDg1MSwxMDYzIEw4NTIsMTA2NCBMODUyLDEwNjUgTDg1OSwxMDcyIEw4NjAsMTA3MiBMODYxLDEwNzMgTDg2MSwxMDc0IEw4NjQsMTA3NyBMODY1LDEwNzcgTDg2NiwxMDc4IEw4NjYsMTA3OSBMODczLDEwODYgTDg3NCwxMDg2IEw4NzUsMTA4NyBMODc1LDEwODggTDg3OCwxMDkxIEw4NzksMTA5MSBMODgwLDEwOTIgTDg4MCwxMDkzIEw4ODcsMTEwMCBMODg4LDExMDAgTDg4OSwxMTAxIEw4ODksMTEwMiBMOTE4LDExMzEgTDkxOSwxMTMxIEw5MjAsMTEzMiBMOTIwLDExMzMgTDkyMywxMTM2IEw5MjQsMTEzNiBMOTI1LDExMzcgTDkyNSwxMTM4IEw5MzIsMTE0NSBMOTMzLDExNDUgTDkzNCwxMTQ2IEw5MzQsMTE0NyBMOTQ2LDExNTkgTDk0NywxMTU5IEw5NDgsMTE2MCBMOTQ4LDExNjEgTDk2MywxMTc2IEw5NjQsMTE3NiBMOTY1LDExNzcgTDk2NSwxMTc4IEw5NzcsMTE5MCBMOTc4LDExOTAgTDk3OSwxMTkxIEw5NzksMTE5MiBMOTgyLDExOTUgTDk4MywxMTk1IEw5ODQsMTE5NiBMOTg0LDExOTcgTDk4NywxMjAwIEw5ODcsMTIwMyBMOTg4LDEyMDQgTDk4OSwxMjA0IEw5OTAsMTIwNSBMOTkwLDEyMDYgTDk5MSwxMjA3IEw5OTIsMTIwNyBMOTkzLDEyMDggTDk5MywxMjA5IEw5OTQsMTIxMCBMOTk1LDEyMTAgTDk5NiwxMjExIEw5OTYsMTIxMiBMMTAwMCwxMjE2IEwxMDAxLDEyMTYgTDEwMDIsMTIxNyBMMTAwMiwxMjE4IEwxMDAzLDEyMTggTDEwMDQsMTIxOSBMMTAwNCwxMjIwIEwxMDA4LDEyMjQgTDEwMDksMTIyNCBMMTAxMCwxMjI1IEwxMDEwLDEyMjYgTDEwMTYsMTIzMiBMMTAxNywxMjMyIEwxMDE4LDEyMzMgTDEwMTgsMTIzNCBMMTAyMiwxMjM4IEwxMDIzLDEyMzggTDEwMjQsMTIzOSBMMTAyNCwxMjQwIEwxMDI1LDEyNDAgTDEwMjYsMTI0MSBMMTAyNiwxMjQyIEwxMDMwLDEyNDYgTDEwMzEsMTI0NiBMMTAzMiwxMjQ3IEwxMDMyLDEyNDggTDEwMzYsMTI1MiBMMTAzNywxMjUyIEwxMDM4LDEyNTMgTDEwMzgsMTI1NCBMMTAzOSwxMjU1IEwxMDQwLDEyNTUgTDEwNDEsMTI1NiBMMTA0MSwxMjU3IEwxMDQ0LDEyNjAgTDEwNDUsMTI2MCBMMTA0NiwxMjYxIEwxMDQ2LDEyNjIgTDEwNDcsMTI2MyBMMTA0OCwxMjYzIEwxMDQ5LDEyNjQgTDEwNDksMTI2NSBMMTA1MywxMjY5IEwxMDU0LDEyNjkgTDEwNTUsMTI3MCBMMTA1NSwxMjcxIEwxMDU5LDEyNzUgTDEwNjAsMTI3NSBMMTA2MSwxMjc2IEwxMDYxLDEyNzcgTDEwNjIsMTI3NyBMMTA2MywxMjc4IEwxMDYzLDEyNzkgTDEwNjcsMTI4MyBMMTA2OCwxMjgzIEwxMDY5LDEyODQgTDEwNjksMTI4NSBMMTA3NSwxMjkxIEwxMDc2LDEyOTEgTDEwNzcsMTI5MiBMMTA3NywxMjkzIEwxMDgxLDEyOTcgTDEwODIsMTI5NyBMMTA4MywxMjk4IEwxMDgzLDEyOTkgTDEwODksMTMwNSBMMTA5MCwxMzA1IEwxMDkxLDEzMDYgTDEwOTEsMTMwNyBMMTA5MiwxMzA4IEwxMDkzLDEzMDggTDEwOTQsMTMwOSBMMTA5NCwxMzEwIEwxMDk1LDEzMTEgTDEwOTYsMTMxMSBMMTA5NywxMzEyIEwxMDk3LDEzMTMgTDEwOTgsMTMxNCBMMTA5OSwxMzE0IEwxMTAwLDEzMTUgTDExMDAsMTMxNiBMMTEwNiwxMzIyIEwxMTA3LDEzMjIgTDExMDgsMTMyMyBMMTEwOCwxMzI0IEwxMTEyLDEzMjggTDExMTMsMTMyOCBMMTExNCwxMzI5IEwxMTE0LDEzMzAgTDExMjAsMTMzNiBMMTEyMSwxMzM2IEwxMTIyLDEzMzcgTDExMjIsMTMzOCBMMTEyNiwxMzQyIEwxMTI3LDEzNDIgTDExMjgsMTM0MyBMMTEyOCwxMzQ0IEwxMTM0LDEzNTAgTDExMzUsMTM1MCBMMTEzNiwxMzUxIEwxMTM2LDEzNTIgTDExNDAsMTM1NiBMMTE0MSwxMzU2IEwxMTQyLDEzNTcgTDExNDIsMTM1OCBMMTE1MSwxMzY3IEwxMTUyLDEzNjcgTDExNTMsMTM2OCBMMTE1MywxMzY5IEwxMTU0LDEzNzAgTDExNTUsMTM3MCBMMTE1NiwxMzcxIEwxMTU2LDEzNzIgTDExNTcsMTM3MyBMMTE1OCwxMzczIEwxMTU5LDEzNzQgTDExNTksMTM3NSBMMTE2NSwxMzgxIEwxMTY2LDEzODEgTDExNjcsMTM4MiBMMTE2NywxMzgzIEwxMTcxLDEzODcgTDExNzIsMTM4NyBMMTE3MywxMzg4IEwxMTczLDEzODkgTDExNzksMTM5NSBMMTE4MCwxMzk1IEwxMTgxLDEzOTYgTDExODEsMTM5NyBMMTE4NSwxNDAxIEwxMTg2LDE0MDEgTDExODcsMTQwMiBMMTE4NywxNDAzIEwxMTk5LDE0MTUgTDEyMDAsMTQxNSBMMTIwMSwxNDE2IEwxMjAxLDE0MTcgTDEyMDIsMTQxOCBMMTIwMywxNDE4IEwxMjA0LDE0MTkgTDEyMDQsMTQyMCBMMTIxMCwxNDI2IEwxMjExLDE0MjYgTDEyMTIsMTQyNyBMMTIxMiwxNDI4IEwxMjEzLDE0MjkgTDEyMTQsMTQyOSBMMTIxNSwxNDMwIEwxMjE1LDE0MzEgTDEyMTYsMTQzMiBMMTIxNywxNDMyIEwxMjE4LDE0MzMgTDEyMTgsMTQzNCBMMTIyMiwxNDM4IEwxMjIzLDE0MzggTDEyMjQsMTQzOSBMMTIyNCwxNDQwIEwxMjI1LDE0NDAgTDEyMjYsMTQ0MSBMMTIyNiwxNDQyIEwxMjMwLDE0NDYgTDEyMzEsMTQ0NiBMMTIzMiwxNDQ3IEwxMjMyLDE0NDggTDEyNTQsMTQ3MCBMMTI1NCwxNDcyIEwxMjU1LDE0NzMgTDEyNTUsMTQ3NCBMMTI1NiwxNDc0IEwxMjU3LDE0NzUgTDEyNTcsMTQ3NiBMMTI1OCwxNDc2IEwxMjYwLDE0NzggTDEyNjAsMTQ3OSBMMTI2MSwxNDgwIEwxMjYyLDE0ODAgTDEyNjMsMTQ4MSBMMTI2MywxNDgyIEwxMjY2LDE0ODUgTDEyNjcsMTQ4NSBMMTI2OSwxNDg3IEwxMjY5LDE0ODggTDEyNzIsMTQ5MSBMMTI3MywxNDkxIEwxMjc0LDE0OTIgTDEyNzQsMTQ5MyBMMTI3NSwxNDk0IEwxMjc2LDE0OTQgTDEyNzcsMTQ5NSBMMTI3NywxNDk2IEwxMjgwLDE0OTkgTDEyODEsMTQ5OSBMMTI4MywxNTAxIEwxMjgzLDE1MDIgTDEyODQsMTUwMyBMMTI4NSwxNTAzIEwxMjg2LDE1MDQgTDEyODYsMTUwNSBMMTI4NywxNTA1IEwxMjg4LDE1MDYgTDEyODgsMTUwNyBMMTI4OSwxNTA4IEwxMjkwLDE1MDggTDEyOTEsMTUwOSBMMTI5MSwxNTEwIEwxMjk0LDE1MTMgTDEyOTUsMTUxMyBMMTI5NiwxNTE0IEwxMjk2LDE1MTUgTDEyOTgsMTUxNyBMMTI5OSwxNTE3IEwxMzAwLDE1MTggTDEzMDAsMTUxOSBMMTMwMSwxNTE5IEwxMzAyLDE1MjAgTDEzMDIsMTUyMSBMMTMwMywxNTIyIEwxMzA0LDE1MjIgTDEzMDUsMTUyMyBMMTMwNSwxNTI0IEwxMzA2LDE1MjUgTDEzMDcsMTUyNSBMMTMwOCwxNTI2IEwxMzA4LDE1MjcgTDEzMTEsMTUzMCBMMTMxMiwxNTMwIEwxMzE0LDE1MzIgTDEzMTQsMTUzMyBMMTMxNywxNTM2IEwxMzE4LDE1MzYgTDEzMTksMTUzNyBMMTMxOSwxNTM4IEwxMzIwLDE1MzkgTDEzMjEsMTUzOSBMMTMyMiwxNTQwIEwxMzIyLDE1NDEgTDEzMjUsMTU0NCBMMTMyNiwxNTQ0IEwxMzI4LDE1NDYgTDEzMjgsMTU0NyBMMTMzMSwxNTUwIEwxMzMyLDE1NTAgTDEzMzMsMTU1MSBMMTMzMywxNTUyIEwxMzM0LDE1NTMgTDEzMzUsMTU1MyBMMTMzNiwxNTU0IEwxMzM2LDE1NTUgTDEzMzksMTU1OCBMMTM0MCwxNTU4IEwxMzQyLDE1NjAgTDEzNDIsMTU2MSBMMTM0OCwxNTY3IEwxMzQ5LDE1NjcgTDEzNTAsMTU2OCBMMTM1MCwxNTY5IEwxMzUzLDE1NzIgTDEzNTQsMTU3MiBMMTM1NSwxNTczIEwxMzU1LDE1NzQgTDEzNTYsMTU3NSBMMTM1NywxNTc1IEwxMzU5LDE1NzcgTDEzNTksMTU3OCBMMTM2MiwxNTgxIEwxMzYzLDE1ODEgTDEzNjQsMTU4MiBMMTM2NCwxNTgzIEwxMzY1LDE1ODQgTDEzNjYsMTU4NCBMMTM2NywxNTg1IEwxMzY3LDE1ODYgTDEzNzAsMTU4OSBMMTM3MSwxNTg5IEwxMzczLDE1OTEgTDEzNzMsMTU5MiBMMTM3NiwxNTk1IEwxMzc3LDE1OTUgTDEzNzgsMTU5NiBMMTM3OCwxNTk3IEwxMzc5LDE1OTggTDEzODAsMTU5OCBMMTM4MSwxNTk5IEwxMzgxLDE2MDAgTDEzODQsMTYwMyBMMTM4NSwxNjAzIEwxMzg3LDE2MDUgTDEzODcsMTYwNiBMMTM5MCwxNjA5IEwxMzkxLDE2MDkgTDEzOTIsMTYxMCBMMTM5MiwxNjE0IEwxMzkzLDE2MTUgTDEzOTQsMTYxNSBMMTM5OCwxNjE5IEwxMzk4LDE2MjAgTDEzOTksMTYyMCBMMTQwMCwxNjIxIEwxNDAyLDE2MjEgTDE0MDYsMTYyNSBMMTQwNiwxNjI4IEwxNDA3LDE2MjkgTDE0MDgsMTYyOSBMMTQxMiwxNjMzIEwxNDEyLDE2MzQgTDE0MTMsMTYzNCBMMTQxNCwxNjM1IEwxNDE3LDE2MzUgTDE0MTgsMTYzNiBMMTQxOCwxNjM3IEwxNDIwLDE2MzkgTDE0MjAsMTY0MSBMMTQyMSwxNjQyIEwxNDIxLDE2NDMgTDE0MjIsMTY0MyBMMTQyNSwxNjQ2IEwxNzU2LDE2NDYgTDE3NTcsMTY0NSBMMTc2MCwxNjQ1IEwxNzYxLDE2NDQgTDE3NjEsMTYzNyBMMTc2MCwxNjM3IEwxNzU5LDE2MzYgTDE3NTcsMTYzNiBMMTc1NiwxNjM1IEwxNzU2LDE2MzEgTDE3NTUsMTYzMSBMMTc1MywxNjI5IEwxNzUzLDE2MjggTDE3NTIsMTYyOCBMMTc1MSwxNjI3IEwxNzUxLDE2MjYgTDE3NTAsMTYyNSBMMTc0NywxNjI1IEwxNzQzLDE2MjEgTDE3NDMsMTYxOSBMMTc0MiwxNjE4IEwxNzQyLDE2MTcgTDE3NDEsMTYxNyBMMTczOSwxNjE1IEwxNzM5LDE2MTQgTDE3MzgsMTYxNCBMMTczNiwxNjEyIEwxNzM2LDE2MTEgTDE3MzMsMTYxMSBMMTcyOSwxNjA3IEwxNzI5LDE2MDUgTDE3MjgsMTYwNCBMMTcyOCwxNjAzIEwxNzI3LDE2MDMgTDE3MjUsMTYwMSBMMTcyNSwxNjAwIEwxNzI0LDE2MDAgTDE3MjIsMTU5OCBMMTcyMiwxNTk3IEwxNzIxLDE1OTcgTDE3MjAsMTU5NiBMMTcxOCwxNTk2IEwxNzE0LDE1OTIgTDE3MTQsMTU4OSBMMTcxMywxNTg5IEwxNzExLDE1ODcgTDE3MTEsMTU4NiBMMTcwOSwxNTg2IEwxNzA4LDE1ODUgTDE3MDcsMTU4NSBMMTY5OCwxNTc2IEwxNjk4LDE1NzUgTDE2OTcsMTU3NCBMMTY5NywxNTcyIEwxNjk2LDE1NzIgTDE2OTUsMTU3MSBMMTY5MywxNTcxIEwxNjg2LDE1NjQgTDE2ODYsMTU2MSBMMTY4NSwxNTYwIEwxNjg0LDE1NjAgTDE2ODMsMTU1OSBMMTY4MywxNTU4IEwxNjgyLDE1NTggTDE2ODEsMTU1NyBMMTY3OSwxNTU3IEwxNjc3LDE1NTUgTDE2NzYsMTU1NSBMMTY3NSwxNTU0IEwxNjc1LDE1NTMgTDE2NzIsMTU1MCBMMTY3MiwxNTQ4IEwxNjcxLDE1NDcgTDE2NzEsMTU0NiBMMTY2NywxNTQ2IEwxNjY2LDE1NDUgTDE2NjYsMTU0NCBMMTY2MywxNTQxIEwxNjYyLDE1NDEgTDE2NjEsMTU0MCBMMTY2MSwxNTM5IEwxNjU4LDE1MzYgTDE2NTgsMTUzNCBMMTY1NiwxNTMyIEwxNjUzLDE1MzIgTDE2NTIsMTUzMSBMMTY1MiwxNTMwIEwxNjUxLDE1MjkgTDE1OTksMTUyOSBMMTU5NiwxNTMyIEwxNTU4LDE1MzIgTDE1NTcsMTUzMSBMMTU1NywxNTMwIEwxNTU2LDE1MjkgTDE1NTUsMTUyOSBMMTU1MSwxNTI1IEwxNTUxLDE1MjQgTDE1NTAsMTUyNCBMMTU0MiwxNTE2IEwxNTQyLDE1MTUgTDE1NDEsMTUxNSBMMTUzNCwxNTA4IEwxNTM0LDE1MDcgTDE1MzMsMTUwNyBMMTUyOCwxNTAyIEwxNTI4LDE1MDEgTDE1MjcsMTUwMSBMMTUyNiwxNTAwIEwxNTI2LDE0OTkgTDE1MjUsMTQ5OCBMMTUyNCwxNDk4IEwxNTIzLDE0OTcgTDE1MjMsMTQ5NSBMMTUyNCwxNDk0IEwxNTQyLDE0OTQgTDE1NDIsMTQ5MyBMMTU0NCwxNDkxIEwxNTU4LDE0OTEgTDE1NjAsMTQ4OSBMMTU3NCwxNDg5IEwxNTc3LDE0ODYgTDE1ODAsMTQ4NiBMMTU4MSwxNDg1IEwxNjA5LDE0ODUgTDE2MTEsMTQ4MyBMMTYxNCwxNDgzIEwxNjE1LDE0ODIgTDE2MTksMTQ4MiBMMTYyMSwxNDgwIEwxNjIxLDE0NzggTDE2MTgsMTQ3NSBMMTYxOCwxNDc0IEwxNjEwLDE0NjYgTDE2MTAsMTQ2NSBMMTYwOSwxNDY1IEwxNjA3LDE0NjMgTDE2MDcsMTQ2MiBMMTYwNiwxNDYyIEwxNjAxLDE0NTcgTDE2MDEsMTQ1NiBMMTYwMCwxNDU2IEwxNTkyLDE0NDggTDE1OTEsMTQ0OCBMMTU5MCwxNDQ3IEwxNTg2LDE0NDcgTDE1ODQsMTQ0NSBMMTU1OSwxNDQ1IEwxNTU3LDE0NDcgTDE1MjQsMTQ0NyBMMTUyMywxNDQ4IEwxNTIyLDE0NDggTDE1MjIsMTQ0OSBMMTUyMSwxNDUwIEwxNDk1LDE0NTAgTDE0OTIsMTQ1MyBMMTQ3OCwxNDUzIEwxNDc1LDE0NTYgTDE0NzQsMTQ1NiBMMTQ2NywxNDQ5IEwxNDY3LDE0NDYgTDE0NjYsMTQ0NSBMMTQ2NSwxNDQ1IEwxNDY0LDE0NDQgTDE0NjQsMTQ0MyBMMTQ2MCwxNDM5IEwxNDYxLDE0MzggTDE0NzQsMTQzOCBMMTQ3NSwxNDM3IEwxNDc1LDE0MzYgTDE0NzYsMTQzNSBMMTQ4MiwxNDM1IEwxNDg1LDE0MzIgTDE1MTMsMTQzMiBMMTUxNSwxNDMwIEwxNTM5LDE0MzAgTDE1NDAsMTQyOSBMMTU0NCwxNDI5IEwxNTQ3LDE0MjYgTDE1NjYsMTQyNiBMMTU2NywxNDI1IEwxNTY3LDE0MTggTDE1NjUsMTQxNiBMMTU2NSwxNDE1IEwxNTY0LDE0MTUgTDE1NjIsMTQxMyBMMTU2MiwxNDEyIEwxNTU1LDE0MDUgTDE1NTQsMTQwNSBMMTU1MywxNDA0IEwxNTUzLDE0MDMgTDE1NTAsMTQwMCBMMTU0OSwxNDAwIEwxNTQ4LDEzOTkgTDE1NDgsMTM5OCBMMTUzMywxMzgzIEwxNTMyLDEzODMgTDE1MzEsMTM4MiBMMTUzMSwxMzgxIEwxNTI4LDEzNzggTDE1MjcsMTM3OCBMMTUyNiwxMzc3IEwxNTI2LDEzNzYgTDE1MjQsMTM3NCBMMTUyMSwxMzc0IEwxNTE2LDEzNjkgTDE1MDAsMTM2OSBMMTQ5NywxMzcyIEwxNDk0LDEzNzIgTDE0OTIsMTM3NCBMMTQ2NCwxMzc0IEwxNDYzLDEzNzUgTDE0NjMsMTM3NiBMMTQ2MiwxMzc3IEwxNDM3LDEzNzcgTDE0MzYsMTM3OCBMMTQzNSwxMzc4IEwxNDMzLDEzODAgTDE0MDcsMTM4MCBMMTQwNiwxMzgxIEwxNDA2LDEzODIgTDE0MDUsMTM4MyBMMTQwMCwxMzgzIEwxMzk5LDEzODIgTDEzOTksMTM4MSBMMTM5NiwxMzc4IEwxMzk1LDEzNzggTDEzOTQsMTM3NyBMMTM5MiwxMzc3IEwxMzkxLDEzNzYgTDEzOTEsMTM3NCBMMTM5MCwxMzczIEwxMzkwLDEzNzIgTDEzODcsMTM2OSBMMTM4NiwxMzY5IEwxMzg1LDEzNjggTDEzODUsMTM2NyBMMTM4NCwxMzY2IEwxMzgzLDEzNjYgTDEzODIsMTM2NSBMMTM4MiwxMzY0IEwxMzgxLDEzNjQgTDEzODAsMTM2MyBMMTM3NywxMzYzIEwxMzc2LDEzNjIgTDEzNzYsMTM1OCBMMTM3NSwxMzU4IEwxMzc0LDEzNTcgTDEzNzQsMTM1NiBMMTM3MywxMzU1IEwxMzcyLDEzNTUgTDEzNzEsMTM1NCBMMTM3MSwxMzUzIEwxMzcwLDEzNTIgTDEzNjksMTM1MiBMMTM2OCwxMzUxIEwxMzY4LDEzNTAgTDEzNjcsMTM0OSBMMTM2NCwxMzQ5IEwxMzYzLDEzNDggTDEzNjMsMTM0NSBMMTM2MSwxMzQzIEwxMzYwLDEzNDMgTDEzNTksMTM0MiBMMTM1OSwxMzQxIEwxMzU4LDEzNDEgTDEzNTcsMTM0MCBMMTM1NywxMzM5IEwxMzU2LDEzMzggTDEzNTMsMTMzOCBMMTM0OSwxMzM0IEwxMzQ5LDEzMzEgTDEzNDYsMTMyOCBMMTM0NiwxMzI2IEwxMzQ1LDEzMjUgTDEzNDUsMTMyNCBMMTM0NCwxMzI0IEwxMzQzLDEzMjMgTDEzNDMsMTMyMiBMMTM0MiwxMzIxIEwxMzM5LDEzMjEgTDEzMzcsMTMxOSBMMTMzNywxMzE2IEwxMzM2LDEzMTUgTDEzMzUsMTMxNSBMMTMzNCwxMzE0IEwxMzM0LDEzMTMgTDEzMzMsMTMxMyBMMTMzMSwxMzExIEwxMzMxLDEzMTAgTDEzMzAsMTMxMCBMMTMyOSwxMzA5IEwxMzI5LDEzMDggTDEzMjgsMTMwNyBMMTMyNSwxMzA3IEwxMzIzLDEzMDUgTDEzMjMsMTMwMiBMMTMyMiwxMzAxIEwxMzIxLDEzMDEgTDEzMjAsMTMwMCBMMTMyMCwxMjk5IEwxMzE5LDEyOTkgTDEzMTcsMTI5NyBMMTMxNywxMjk2IEwxMzE2LDEyOTYgTDEzMTQsMTI5NCBMMTMxNCwxMjkzIEwxMzExLDEyOTMgTDEzMDksMTI5MSBMMTMwOSwxMjg4IEwxMzA4LDEyODggTDEzMDYsMTI4NiBMMTMwNiwxMjg1IEwxMzA1LDEyODUgTDEzMDMsMTI4MyBMMTMwMywxMjgyIEwxMjk5LDEyODIgTDEyOTgsMTI4MSBMMTI5OCwxMjgwIEwxMjk3LDEyNzkgTDEyOTYsMTI3OSBMMTI5NSwxMjc4IEwxMjk1LDEyNzQgTDEyOTQsMTI3NCBMMTI5MiwxMjcyIEwxMjkyLDEyNzEgTDEyOTEsMTI3MCBMMTI5MCwxMjcwIEwxMjg5LDEyNjkgTDEyODksMTI2OCBMMTI4NiwxMjY4IEwxMjgzLDEyNjUgTDEyODIsMTI2NSBMMTI4MSwxMjY0IEwxMjgxLDEyNjAgTDEyODAsMTI2MCBMMTI3OCwxMjU4IEwxMjc4LDEyNTcgTDEyNzcsMTI1NiBMMTI3NiwxMjU2IEwxMjc1LDEyNTUgTDEyNzUsMTI1NCBMMTI3NCwxMjU0IEwxMjczLDEyNTMgTDEyNzEsMTI1MyBMMTI2OSwxMjUxIEwxMjY4LDEyNTEgTDEyNjcsMTI1MCBMMTI2NywxMjQ2IEwxMjY2LDEyNDYgTDEyNjMsMTI0MyBMMTI2MywxMjQyIEwxMjYyLDEyNDIgTDEyNjEsMTI0MSBMMTI2MSwxMjQwIEwxMjYwLDEyNDAgTDEyNTksMTIzOSBMMTI1NywxMjM5IEwxMjU2LDEyMzggTDEyNTYsMTIzNiBMMTI1NSwxMjM1IEwxMjU1LDEyMzQgTDEyNTQsMTIzNCBMMTI1MywxMjMzIEwxMjUzLDEyMzIgTDEyNTIsMTIzMSBMMTI1MSwxMjMxIEwxMjUwLDEyMzAgTDEyNTAsMTIyOSBMMTI0OSwxMjI4IEwxMjQ4LDEyMjggTDEyNDcsMTIyNyBMMTI0NywxMjI2IEwxMjQ2LDEyMjYgTDEyNDUsMTIyNSBMMTI0MywxMjI1IEwxMjQyLDEyMjQgTDEyNDIsMTIyMiBMMTI0MSwxMjIxIEwxMjQxLDEyMjAgTDEyNDAsMTIyMCBMMTIzOSwxMjE5IEwxMjM5LDEyMTggTDEyMzgsMTIxNyBMMTIzNywxMjE3IEwxMjM2LDEyMTYgTDEyMzYsMTIxNSBMMTIzNSwxMjE1IEwxMjMzLDEyMTMgTDEyMzMsMTIxMiBMMTIzMiwxMjExIEwxMjI5LDEyMTEgTDEyMjcsMTIwOSBMMTIyNywxMjA2IEwxMjI2LDEyMDYgTDEyMjQsMTIwNCBMMTIyNCwxMjAzIEwxMjIzLDEyMDMgTDEyMjIsMTIwMiBMMTIyMiwxMjAxIEwxMjIxLDEyMDEgTDEyMjAsMTIwMCBMMTIxOCwxMjAwIEwxMjE1LDExOTcgTDEyMTQsMTE5NyBMMTIxMywxMTk2IEwxMjEzLDExOTIgTDEyMTIsMTE5MiBMMTIxMCwxMTkwIEwxMjEwLDExODkgTDEyMDksMTE4OSBMMTIwOCwxMTg4IEwxMjA4LDExODcgTDEyMDcsMTE4NiBMMTIwNCwxMTg2IEwxMTk5LDExODEgTDExOTksMTE3OCBMMTE5OCwxMTc4IEwxMTk2LDExNzYgTDExOTYsMTE3NSBMMTE5NSwxMTc1IEwxMTk0LDExNzQgTDExOTQsMTE3MyBMMTE5MywxMTcyIEwxMTkwLDExNzIgTDExODgsMTE3MCBMMTE4OCwxMTY3IEwxMTg3LDExNjYgTDExODYsMTE2NiBMMTE4NSwxMTY1IEwxMTg1LDExNjQgTDExODQsMTE2NCBMMTE4MiwxMTYyIEwxMTgyLDExNjEgTDExODEsMTE2MSBMMTE4MCwxMTYwIEwxMTgwLDExNTkgTDExNzksMTE1OCBMMTE3OCwxMTU4IEwxMTc3LDExNTcgTDExNzcsMTE1NiBMMTE3NiwxMTU2IEwxMTc0LDExNTQgTDExNzQsMTE1MyBMMTE3MywxMTUyIEwxMTcyLDExNTIgTDExNzEsMTE1MSBMMTE3MSwxMTUwIEwxMTcwLDExNTAgTDExNjgsMTE0OCBMMTE2OCwxMTQ3IEwxMTY3LDExNDcgTDExNjUsMTE0NSBMMTE2NSwxMTQ0IEwxMTY0LDExNDQgTDExNjMsMTE0MyBMMTE2MywxMTQyIEwxMTYyLDExNDEgTDExNjEsMTE0MSBMMTE1OSwxMTM5IEwxMTU5LDExMzggTDExNTgsMTEzOCBMMTE1NywxMTM3IEwxMTU3LDExMzYgTDExNTYsMTEzNiBMMTE1NCwxMTM0IEwxMTU0LDExMzMgTDExNTMsMTEzMyBMMTE1MSwxMTMxIEwxMTUxLDExMzAgTDExNTAsMTEzMCBMMTE0OSwxMTI5IEwxMTQ5LDExMjggTDExNDgsMTEyNyBMMTE0NywxMTI3IEwxMTQ1LDExMjUgTDExNDUsMTEyNCBMMTE0NCwxMTI0IEwxMTQzLDExMjMgTDExNDMsMTEyMiBMMTE0MiwxMTIxIEwxMTQxLDExMjEgTDExNDAsMTEyMCBMMTE0MCwxMTE5IEwxMTM5LDExMTkgTDExMzcsMTExNyBMMTEzNywxMTE2IEwxMTM2LDExMTYgTDExMzUsMTExNSBMMTEzNSwxMTE0IEwxMTM0LDExMTMgTDExMzMsMTExMyBMMTEzMSwxMTExIEwxMTMxLDExMTAgTDExMzAsMTExMCBMMTEyOSwxMTA5IEwxMTI5LDExMDggTDExMjgsMTEwNyBMMTEyNywxMTA3IEwxMTI2LDExMDYgTDExMjYsMTEwNSBMMTEyNSwxMTA1IEwxMTIzLDExMDMgTDExMjMsMTEwMiBMMTEyMiwxMTAyIEwxMTIxLDExMDEgTDExMjEsMTEwMCBMMTEyMCwxMDk5IEwxMTE5LDEwOTkgTDExMTgsMTA5OCBMMTExOCwxMDk3IEwxMTE3LDEwOTcgTDExMTUsMTA5NSBMMTExNSwxMDk0IEwxMTE0LDEwOTMgTDExMTMsMTA5MyBMMTExMiwxMDkyIEwxMTEyLDEwOTEgTDExMTEsMTA5MSBMMTEwOSwxMDg5IEwxMTA5LDEwODggTDExMDgsMTA4OCBMMTEwNywxMDg3IEwxMTA3LDEwODQgTDEwOTcsMTA3NCBMMTA5NiwxMDc0IEwxMDk1LDEwNzMgTDEwOTUsMTA3MSBMMTA5NCwxMDcxIEwxMDg2LDEwNjMgTDEwODYsMTA2MiBMMTA4NSwxMDYyIEwxMDgxLDEwNTggTDEwODEsMTA1NyBMMTA4MCwxMDU3IEwxMDcyLDEwNDkgTDEwNzIsMTA0OCBMMTA2OSwxMDQ4IEwxMDY3LDEwNDYgTDEwNjcsMTA0MyBMMTA2NiwxMDQzIEwxMDU4LDEwMzUgTDEwNTgsMTAzNCBMMTA1NCwxMDM0IEwxMDUzLDEwMzMgTDEwNTMsMTAzMiBMMTA1MiwxMDMxIEwxMDUxLDEwMzEgTDEwNTAsMTAzMCBMMTA1MCwxMDI5IEwxMDQ5LDEwMjkgTDEwNDgsMTAyOCBMMTA0OCwxMDI2IEwxMDQ3LDEwMjUgTDEwNDcsMTAyNCBMMTA0NiwxMDIzIEwxMDQzLDEwMjMgTDEwNDEsMTAyMSBMMTA0MSwxMDIwIEwxMDQwLDEwMjAgTDEwMzksMTAxOSBMMTAzOSwxMDE4IEwxMDM4LDEwMTcgTDEwMzcsMTAxNyBMMTAzNiwxMDE2IEwxMDM2LDEwMTUgTDEwMzUsMTAxNSBMMTAzMywxMDEzIEwxMDMzLDEwMTIgTDEwMzIsMTAxMiBMMTAzMSwxMDExIEwxMDMxLDEwMTAgTDEwMzAsMTAwOSBMMTAyOSwxMDA5IEwxMDI4LDEwMDggTDEwMjgsMTAwNyBMMTAyNywxMDA2IEwxMDI2LDEwMDYgTDEwMjUsMTAwNSBMMTAyNSwxMDA0IEwxMDIyLDEwMDEgTDEwMjIsOTk4IEwxMDIxLDk5OCBMMTAxMyw5OTAgTDEwMTMsOTg5IEwxMDEyLDk4OSBMMTAwOCw5ODUgTDEwMDgsOTg0IEwxMDA2LDk4NCBMMTAwNSw5ODMgTDEwMDUsOTgyIEwxMDAxLDk3OCBMOTk4LDk3OCBMOTk3LDk3NyBMOTk3LDk3NCBMOTk0LDk3MSBMOTk0LDk3MCBMOTkzLDk3MCBMOTkxLDk2OCBMOTkxLDk2NyBMOTkwLDk2NyBMOTg1LDk2MiBMOTg1LDk2MSBMOTg0LDk2MSBMOTc3LDk1NCBMOTc3LDk1MyBMOTc2LDk1MyBMOTY4LDk0NSBMOTY4LDk0NCBMOTY3LDk0NCBMOTYzLDk0MCBMOTYzLDkzOSBMOTYyLDkzOCBMOTYxLDkzOCBMOTYwLDkzNyBMOTYwLDkzMCBMOTYyLDkyOCBMOTYzLDkyOCBMOTYzLDkyNCBMOTY0LDkyMyBMOTY1LDkyMyBMOTY2LDkyMiBMOTY2LDkxOSBMOTY4LDkxNyBMOTY4LDkxNiBMOTcwLDkxNCBMOTcxLDkxNCBMOTcxLDkxMyBMOTcyLDkxMiBMOTcyLDkxMCBMOTg3LDg5NSBMMTEyNCw4OTUgTDExMjUsODk0IEwxMTI2LDg5NCBMMTEyNiw4OTMgTDExMjgsODkxIEwxMTI5LDg5MSBMMTEyOSw4OTAgTDExMzAsODg5IEwxMTMzLDg4OSBMMTEzNSw4ODcgTDExMzUsODg1IEwxMTM3LDg4MyBMMTE0MCw4ODMgTDExNDAsODgyIEwxMTQyLDg4MCBMMTE0Myw4ODAgTDExNDMsODc2IEwxMTQ0LDg3NSBMMTE0NSw4NzUgTDExNDUsODc0IEwxMTQ3LDg3MiBMMTE0OCw4NzIgTDExNDksODcxIEwxMTQ5LDg3MCBMMTE1MCw4NjkgTDExNTEsODY5IEwxMTU0LDg2NiBMMTE1NCw4NjUgTDExNTUsODY0IEwxMTU2LDg2NCBMMTE1Nyw4NjMgTDExNTcsODYwIEwxMTYwLDg1NyBMMTE2MCw4NTYgTDExNjEsODU1IEwxMTYyLDg1NSBMMTE2OCw4NDkgTDExNjgsODQ4IEwxMTcwLDg0NiBMMTE3MSw4NDYgTDExNzEsODQ0IEwxMTcyLDg0MyBMMTE3Miw4NDIgTDExOTYsODE4IEwxMTk2LDgxNyBMMTE5Nyw4MTYgTDExOTcsODE0IEwxMTk4LDgxMyBMMTE5OSw4MTMgTDExOTksODEyIEwxMjA3LDgwNCBMMTIwOCw4MDQgTDEyMDgsODAzIEwxMjEzLDc5OCBMMTIxMyw3OTUgTDEyMTUsNzkzIEwxMjE2LDc5MyBMMTIxNiw3OTIgTDEyMTcsNzkxIEwxMjE4LDc5MSBMMTIxOCw3OTAgTDEyMjEsNzg3IEwxMjIyLDc4NyBMMTIyMiw3ODYgTDEyMjMsNzg1IEwxMjI0LDc4NSBMMTIyNCw3ODQgTDEyMjYsNzgyIEwxMjI3LDc4MiBMMTIyNyw3NzkgTDEyMzMsNzczIEwxMjMzLDc3MiBMMTIzNCw3NzEgTDEyMzUsNzcxIEwxMjM2LDc3MCBMMTIzNiw3NjkgTDEyMzcsNzY4IEwxMjM4LDc2OCBMMTIzOSw3NjcgTDEyMzksNzY2IEwxMjQyLDc2MyBMMTI0Myw3NjMgTDEyNDQsNzYyIEwxMjQ0LDc2MSBMMTI0NSw3NjAgTDEyNDYsNzYwIEwxMjQ3LDc1OSBMMTI0Nyw3NTggTDEyNTAsNzU1IEwxMjUwLDc1MiBMMTI1MSw3NTEgTDEyNTIsNzUxIEwxMjU4LDc0NSBMMTI1OCw3NDQgTDEyNjAsNzQyIEwxMjYxLDc0MiBMMTI2Myw3NDAgTDEyNjMsNzM5IEwxMjY1LDczNyBMMTI2Niw3MzcgTDEyNjcsNzM2IEwxMjY3LDczMyBMMTI3MCw3MzAgTDEyNzAsNzI5IEwxMjcxLDcyOCBMMTI3Miw3MjggTDEyNzIsNzE4IEwxMjY4LDcxNCBMMTI2Niw3MTQgTDEyNjUsNzEzIFoiIGZpbGw9InVybCgjZ3JhZGllbnQpIiBzdHJva2U9Im5vbmUiIC8+PHBhdGggZD0iTTExODEsMzUzIEwxMTgwLDM1NCBMMzQ1LDM1NCBMMzQ0LDM1NSBMMzQ0LDM1NyBMMzQzLDM1OCBMMzQzLDE1MDUgTDM0NCwxNTA2IEwzNDQsMTUwNyBMMzQ1LDE1MDggTDUyNywxNTA4IEw1MjgsMTUwNyBMNTI5LDE1MDcgTDUyOSwxNTAzIEw1MzAsMTUwMiBMNTMwLDU0OCBMNTMyLDU0NiBMMTI0NSw1NDYgTDEyNDgsNTQ5IEwxMjY0LDU0OSBMMTI2Niw1NTEgTDEyNjcsNTUxIEwxMjY4LDU1MiBMMTI3OSw1NTIgTDEyODAsNTUzIEwxMjgwLDU1NCBMMTI4MSw1NTQgTDEyODIsNTU1IEwxMjkwLDU1NSBMMTI5Miw1NTcgTDEyOTgsNTU3IEwxMzAxLDU2MCBMMTMwOSw1NjAgTDEzMTIsNTYzIEwxMzEzLDU2MyBMMTMxNCw1NjQgTDEzMTQsNTY1IEwxMzE3LDU2NSBMMTMxOCw1NjYgTDEzMjEsNTY2IEwxMzI0LDU2OSBMMTMyNyw1NjkgTDEzMjgsNTcwIEwxMzI4LDU3MSBMMTMzNCw1NzEgTDEzNDAsNTc3IEwxMzQzLDU3NyBMMTM0Niw1ODAgTDEzNDksNTgwIEwxMzU0LDU4NSBMMTM1NSw1ODUgTDEzNTYsNTg2IEwxMzU4LDU4NiBMMTM2MCw1ODggTDEzNjMsNTg4IEwxMzY0LDU4OSBMMTM2NCw1OTIgTDEzNjYsNTk0IEwxMzY4LDU5NCBMMTM3MSw1OTcgTDEzNzQsNTk3IEwxMzc5LDYwMiBMMTM4MCw2MDIgTDEzODEsNjAzIEwxMzgxLDYwNCBMMTM4NSw2MDggTDEzODYsNjA4IEwxMzg3LDYwOSBMMTM4Nyw2MTAgTDEzOTMsNjE2IEwxMzk0LDYxNiBMMTM5NSw2MTcgTDEzOTUsNjE4IEwxNDAzLDYyNiBMMTQwMyw2MjggTDE0MDYsNjMxIEwxNDA2LDYzMiBMMTQwNyw2MzMgTDE0MDgsNjMzIEwxNDA5LDYzNCBMMTQwOSw2MzcgTDE0MTEsNjM5IEwxNDEzLDYzOSBMMTQxNCw2NDAgTDE0MTQsNjQyIEwxNDE1LDY0MyBMMTQxNSw2NDQgTDE0MTYsNjQ0IEwxNDE3LDY0NSBMMTQxNyw2NDcgTDE0MTgsNjQ4IEwxNDE4LDY0OSBMMTQyMCw2NTEgTDE0MjAsNjU0IEwxNDIzLDY1NyBMMTQyMyw2NjAgTDE0MjQsNjYxIEwxNDI1LDY2MSBMMTQyNiw2NjIgTDE0MjYsNjYzIEwxNDI4LDY2NSBMMTQyOCw2NjcgTDE0MjksNjY4IEwxNDI5LDY2OSBMMTQzMCw2NjkgTDE0MzIsNjcxIEwxNDMyLDY3NCBMMTQzNCw2NzYgTDE0MzQsNjc5IEwxNDM1LDY4MCBMMTQzNSw2ODEgTDE0MzYsNjgxIEwxNDM3LDY4MiBMMTQzNyw2ODggTDE0NDIsNjkzIEwxNDQyLDY5OSBMMTQ0Myw3MDAgTDE0NDMsNzAzIEwxNDQ0LDcwMyBMMTQ0Niw3MDUgTDE0NDYsNzE0IEwxNDQ4LDcxNiBMMTQ0OCw3MjcgTDE0NTEsNzMwIEwxNDUxLDc0MiBMMTQ1Miw3NDIgTDE0NTMsNzQzIEwxNDUzLDc0NCBMMTQ1MSw3NDYgTDE0NTEsNzUzIEwxNDUyLDc1NCBMMTQ1Myw3NTQgTDE0NTQsNzU1IEwxNDU0LDc4MyBMMTQ1Myw3ODQgTDE0NTIsNzg0IEwxNDUxLDc4NSBMMTQ1MSw4MDggTDE0NDgsODExIEwxNDQ4LDgyMiBMMTQ0Niw4MjQgTDE0NDYsODM2IEwxNDQ1LDgzNyBMMTQ0NCw4MzcgTDE0NDMsODM4IEwxNDQzLDg0MCBMMTQ0Miw4NDEgTDE0NDIsODQ1IEwxNDQwLDg0NyBMMTQ0MCw4NTAgTDE0MzcsODUzIEwxNDM3LDg1OSBMMTQzNiw4NjAgTDE0MzUsODYwIEwxNDM0LDg2MSBMMTQzNCw4NjQgTDE0MzIsODY2IEwxNDMyLDg3MiBMMTQyNiw4NzggTDE0MjYsODgxIEwxNDIzLDg4NCBMMTQyMyw4ODcgTDE0MjIsODg4IEwxNDIxLDg4OCBMMTQyMCw4ODkgTDE0MjAsODkyIEwxNDE4LDg5NCBMMTQxOCw4OTUgTDE0MTcsODk2IEwxNDE3LDg5OCBMMTQwOSw5MDYgTDE0MDksOTA5IEwxMzk4LDkyMCBMMTM5OCw5MjIgTDEzOTcsOTIzIEwxMzk3LDkyNCBMMTM5NCw5MjcgTDEzOTMsOTI3IEwxMzkyLDkyOCBMMTM5Miw5MjkgTDEzOTEsOTMwIEwxMzkwLDkzMCBMMTM5MCw5MzEgTDEzODUsOTM2IEwxMzg0LDkzNiBMMTM4NCw5MzcgTDEzODIsOTM5IEwxMzgxLDkzOSBMMTM4MSw5NDAgTDEzNzcsOTQ0IEwxMzc2LDk0NCBMMTM3NSw5NDUgTDEzNzUsOTQ2IEwxMzcxLDk1MCBMMTM3MCw5NTAgTDEzNzAsOTUxIEwxMzY4LDk1MyBMMTM2Nyw5NTMgTDEzNjcsOTU0IEwxMzY1LDk1NiBMMTM2NCw5NTYgTDEzNjQsOTU3IEwxMzYzLDk1OCBMMTM2MCw5NTggTDEzNTksOTU5IEwxMzU5LDk2MCBMMTM1OCw5NjEgTDEzNTcsOTYxIEwxMzQ5LDk2OSBMMTM0OCw5NjkgTDEzNDcsOTcwIEwxMzQ1LDk3MCBMMTMzNyw5NzggTDEzMzQsOTc4IEwxMzMyLDk4MCBMMTMzMCw5ODAgTDEzMjksOTgxIEwxMzI4LDk4MSBMMTMyOCw5ODIgTDEzMjYsOTg0IEwxMzIyLDk4NCBMMTMyMiw5ODUgTDEzMjEsOTg2IEwxMzE4LDk4NiBMMTMxMiw5OTIgTDEzMDksOTkyIEwxMzA3LDk5NCBMMTMwNiw5OTQgTDEzMDUsOTk1IEwxMzAzLDk5NSBMMTMwMSw5OTcgTDEyOTgsOTk3IEwxMjk1LDEwMDAgTDEyOTAsMTAwMCBMMTI4NywxMDAzIEwxMjg0LDEwMDMgTDEyODMsMTAwNCBMMTI4MywxMDA1IEwxMjgyLDEwMDYgTDEyNzgsMTAwNiBMMTI3NSwxMDA5IEwxMjcwLDEwMDkgTDEyNjgsMTAxMSBMMTI2NCwxMDExIEwxMjYzLDEwMTIgTDEyNjEsMTAxMiBMMTI2MCwxMDEzIEwxMjYwLDEwMTQgTDEyNTksMTAxNSBMMTI1NiwxMDE1IEwxMjUyLDEwMTkgTDEyNTUsMTAyMiBMMTI1NSwxMDIzIEwxMjYwLDEwMjggTDEyNjAsMTAyOSBMMTI2MSwxMDI5IEwxMjY2LDEwMzQgTDEyNjYsMTAzNSBMMTI2NywxMDM1IEwxMjY5LDEwMzcgTDEyNjksMTAzOCBMMTI3MCwxMDM4IEwxMjcxLDEwMzkgTDEyNzEsMTA0MCBMMTI3MiwxMDQxIEwxMjczLDEwNDEgTDEyNzQsMTA0MiBMMTI3NCwxMDQzIEwxMjc1LDEwNDQgTDEyNzYsMTA0NCBMMTI3NywxMDQ1IEwxMjc3LDEwNDYgTDEyNzgsMTA0NiBMMTI4MCwxMDQ4IEwxMjgwLDEwNDkgTDEyODEsMTA1MCBMMTI4MiwxMDUwIEwxMjgzLDEwNTEgTDEyODMsMTA1NCBMMTI4OCwxMDU5IEwxMjg4LDEwNjAgTDEyODksMTA2MCBMMTI5NCwxMDY1IEwxMjk0LDEwNjYgTDEyOTUsMTA2NiBMMTMwMCwxMDcxIEwxMzAwLDEwNzIgTDEzMDEsMTA3MiBMMTMwMiwxMDczIEwxMzAyLDEwNzQgTDEzMDMsMTA3NCBMMTMwNSwxMDc2IEwxMzA1LDEwNzcgTDEzMDYsMTA3NyBMMTMwOCwxMDc5IEwxMzA4LDEwODAgTDEzMDksMTA4MCBMMTMxMSwxMDgyIEwxMzExLDEwODMgTDEzMTIsMTA4MyBMMTMxNCwxMDg1IEwxMzE0LDEwODYgTDEzMTUsMTA4NiBMMTMxNiwxMDg3IEwxMzE2LDEwODggTDEzMTcsMTA4OSBMMTMxOCwxMDg5IEwxMzE5LDEwOTAgTDEzMTksMTA5MSBMMTMyMCwxMDkxIEwxMzIyLDEwOTMgTDEzMjIsMTA5NCBMMTMyMywxMDk0IEwxMzI1LDEwOTYgTDEzMjUsMTA5NyBMMTMyNiwxMDk3IEwxMzI4LDEwOTkgTDEzMjgsMTEwMCBMMTMyOSwxMTAwIEwxMzMxLDExMDIgTDEzMzEsMTEwMyBMMTMzMiwxMTAzIEwxMzMzLDExMDQgTDEzMzMsMTEwNSBMMTMzNCwxMTA1IEwxMzM2LDExMDcgTDEzMzYsMTEwOCBMMTMzNywxMTA4IEwxMzM5LDExMTAgTDEzMzksMTExMSBMMTM0MCwxMTExIEwxMzQyLDExMTMgTDEzNDIsMTExNCBMMTM0MywxMTE0IEwxMzQ1LDExMTYgTDEzNDUsMTExNyBMMTM0NiwxMTE3IEwxMzQ3LDExMTggTDEzNDcsMTExOSBMMTM0OCwxMTE5IEwxMzUzLDExMjQgTDEzNTMsMTEyNSBMMTM1NCwxMTI1IEwxMzU2LDExMjcgTDEzNTYsMTEyOCBMMTM1NywxMTI4IEwxMzU5LDExMzAgTDEzNTksMTEzMSBMMTM2MCwxMTMxIEwxMzYxLDExMzIgTDEzNjEsMTEzMyBMMTM2MiwxMTMzIEwxMzY0LDExMzUgTDEzNjQsMTEzNiBMMTM2NSwxMTM2IEwxMzY3LDExMzggTDEzNjcsMTEzOSBMMTM2OCwxMTM5IEwxMzc3LDExNDggTDEzODYsMTE0OCBMMTM4OSwxMTQ1IEwxMzk1LDExNDUgTDEzOTgsMTE0MiBMMTQwMSwxMTQyIEwxNDAzLDExNDAgTDE0MDYsMTE0MCBMMTQwOCwxMTM4IEwxNDA4LDExMzcgTDE0MDksMTEzNiBMMTQxMCwxMTM2IEwxNDEyLDExMzQgTDE0MTcsMTEzNCBMMTQyMCwxMTMxIEwxNDIzLDExMzEgTDE0MjYsMTEyOCBMMTQyOSwxMTI4IEwxNDM3LDExMjAgTDE0NDAsMTEyMCBMMTQ0NCwxMTE2IEwxNDQ0LDExMTUgTDE0NDUsMTExNCBMMTQ0OSwxMTE0IEwxNDQ5LDExMTMgTDE0NTAsMTExMiBMMTQ1MiwxMTEyIEwxNDUzLDExMTEgTDE0NTQsMTExMSBMMTQ1NSwxMTEwIEwxNDU1LDExMDggTDE0NTcsMTEwNiBMMTQ1OSwxMTA2IEwxNDYwLDExMDUgTDE0NjEsMTEwNSBMMTQ2MSwxMTA0IEwxNDYyLDExMDMgTDE0NjUsMTEwMyBMMTQ3NCwxMDk0IEwxNDc1LDEwOTQgTDE0NzUsMTA5MyBMMTQ3NiwxMDkyIEwxNDc4LDEwOTIgTDE0NzksMTA5MSBMMTQ4MCwxMDkxIEwxNDk2LDEwNzUgTDE0OTksMTA3NSBMMTUwMCwxMDc0IEwxNTAwLDEwNzMgTDE1MDEsMTA3MiBMMTUwMiwxMDcyIEwxNTAzLDEwNzEgTDE1MDMsMTA3MCBMMTUwNCwxMDY5IEwxNTA1LDEwNjkgTDE1MDgsMTA2NiBMMTUwOCwxMDY1IEwxNTEwLDEwNjMgTDE1MTEsMTA2MyBMMTUxNywxMDU3IEwxNTE3LDEwNTYgTDE1MTgsMTA1NSBMMTUxOSwxMDU1IEwxNTI2LDEwNDggTDE1MjYsMTA0NyBMMTUyNywxMDQ2IEwxNTI4LDEwNDYgTDE1MjgsMTA0NSBMMTUyOSwxMDQ0IEwxNTI5LDEwNDIgTDE1NDgsMTAyMyBMMTU0OCwxMDIwIEwxNTU0LDEwMTQgTDE1NTQsMTAxMSBMMTU1NiwxMDA5IEwxNTU3LDEwMDkgTDE1NTcsMTAwNiBMMTU1OSwxMDA0IEwxNTU5LDEwMDMgTDE1NjEsMTAwMSBMMTU2MiwxMDAxIEwxNTYyLDEwMDAgTDE1NjMsOTk5IEwxNTY0LDk5OSBMMTU2NSw5OTggTDE1NjUsOTk1IEwxNTcxLDk4OSBMMTU3MSw5ODYgTDE1NzYsOTgxIEwxNTc2LDk4MCBMMTU3Nyw5NzkgTDE1NzgsOTc5IEwxNTc5LDk3OCBMMTU3OSw5NzIgTDE1ODIsOTY5IEwxNTgyLDk2NCBMMTU4NSw5NjEgTDE1ODUsOTYwIEwxNTg2LDk1OSBMMTU4Nyw5NTkgTDE1ODgsOTU4IEwxNTg4LDk1NSBMMTU5MCw5NTMgTDE1OTAsOTUwIEwxNTkzLDk0NyBMMTU5Myw5NDQgTDE1OTYsOTQxIEwxNTk2LDkzNiBMMTU5OCw5MzQgTDE1OTgsOTMzIEwxNjAwLDkzMSBMMTYwMSw5MzEgTDE2MDIsOTMwIEwxNjAyLDkyNyBMMTYwNCw5MjUgTDE2MDQsOTIyIEwxNjA1LDkyMSBMMTYwNSw5MTggTDE2MDYsOTE3IEwxNjA3LDkxNyBMMTYwNyw5MTMgTDE2MTAsOTEwIEwxNjEwLDkwMiBMMTYxMyw4OTkgTDE2MTMsODk4IEwxNjE0LDg5NyBMMTYxNSw4OTcgTDE2MTYsODk2IEwxNjE2LDg5MCBMMTYxOSw4ODcgTDE2MTksODc5IEwxNjIxLDg3NyBMMTYyMSw4NjggTDE2MjMsODY2IEwxNjI0LDg2NiBMMTYyNCw4NjAgTDE2MjcsODU3IEwxNjI3LDg1NCBMMTYzMCw4NTEgTDE2MzAsODM5IEwxNjMxLDgzOCBMMTYzMiw4MzggTDE2MzIsODM3IEwxNjMzLDgzNiBMMTYzMyw4MTQgTDE2MzUsODEyIEwxNjM1LDc5MiBMMTYzNyw3OTAgTDE2MzgsNzkwIEwxNjM4LDc4OCBMMTYzNSw3ODUgTDE2MzUsNzEzIEwxNjM3LDcxMSBMMTYzOCw3MTEgTDE2MzgsNzA5IEwxNjM1LDcwNiBMMTYzNSw2ODkgTDE2MzMsNjg3IEwxNjMzLDY3MyBMMTYzMCw2NzAgTDE2MzAsNjU5IEwxNjI0LDY1MyBMMTYyNCw2NDcgTDE2MjEsNjQ0IEwxNjIxLDYzMyBMMTYxOSw2MzEgTDE2MTksNjI2IEwxNjE4LDYyNSBMMTYxOCw2MjQgTDE2MTYsNjIyIEwxNjE2LDYxNyBMMTYxMyw2MTQgTDE2MTMsNjExIEwxNjEwLDYwOCBMMTYxMCw2MDIgTDE2MDksNjAxIEwxNjA4LDYwMSBMMTYwNyw2MDAgTDE2MDcsNTkzIEwxNjA2LDU5MyBMMTYwNSw1OTIgTDE2MDUsNTkxIEwxNjA0LDU5MCBMMTYwNCw1ODggTDE2MDIsNTg2IEwxNjAyLDU4MyBMMTU5OSw1ODAgTDE1OTksNTc4IEwxNTk4LDU3NyBMMTU5OCw1NzYgTDE1OTcsNTc2IEwxNTk2LDU3NSBMMTU5Niw1NzQgTDE1OTMsNTcxIEwxNTkzLDU2OCBMMTU5Miw1NjcgTDE1OTEsNTY3IEwxNTkwLDU2NiBMMTU5MCw1NjAgTDE1ODgsNTU4IEwxNTg4LDU1NSBMMTU4Miw1NDkgTDE1ODIsNTQ2IEwxNTc2LDU0MCBMMTU3Niw1MzcgTDE1NzMsNTM0IEwxNTcyLDUzNCBMMTU3MSw1MzMgTDE1NzEsNTMyIEwxNTcwLDUzMSBMMTU2OSw1MzEgTDE1NjgsNTMwIEwxNTY4LDUyNyBMMTU2NSw1MjQgTDE1NjUsNTIxIEwxNTYyLDUxOCBMMTU2Miw1MTcgTDE1NjEsNTE3IEwxNTU5LDUxNSBMMTU1OSw1MTQgTDE1NTgsNTE0IEwxNTU3LDUxMyBMMTU1Nyw1MTIgTDE1NTYsNTExIEwxNTU1LDUxMSBMMTU1Myw1MDkgTDE1NTMsNTA4IEwxNTUyLDUwOCBMMTU1MSw1MDcgTDE1NTEsNTA0IEwxNTM0LDQ4NyBMMTUzNCw0ODYgTDE1MzMsNDg2IEwxNTI1LDQ3OCBMMTUyNSw0NzcgTDE1MjQsNDc3IEwxNTIwLDQ3MyBMMTUyMCw0NzIgTDE1MTgsNDcyIEwxNTE3LDQ3MSBMMTUxNyw0NzAgTDE1MTEsNDY0IEwxNTExLDQ2MyBMMTUxMCw0NjMgTDE1MDUsNDU4IEwxNTA0LDQ1OCBMMTUwMyw0NTcgTDE1MDMsNDU2IEwxNDk2LDQ0OSBMMTQ5Myw0NDkgTDE0OTIsNDQ4IEwxNDkyLDQ0NyBMMTQ5MSw0NDYgTDE0OTAsNDQ2IEwxNDg5LDQ0NSBMMTQ4OSw0NDQgTDE0ODgsNDQ0IEwxNDgyLDQzOCBMMTQ3OCw0MzggTDE0NzcsNDM3IEwxNDc2LDQzNyBMMTQ3NCw0MzUgTDE0NzMsNDM1IEwxNDcyLDQzNCBMMTQ3Miw0MzMgTDE0NjksNDMwIEwxNDY4LDQzMCBMMTQ2Nyw0MjkgTDE0NjcsNDI4IEwxNDY2LDQyNyBMMTQ2NSw0MjcgTDE0NjQsNDI2IEwxNDYyLDQyNiBMMTQ1Nyw0MjEgTDE0NTYsNDIxIEwxNDU1LDQyMCBMMTQ1NSw0MTkgTDE0NTQsNDE4IEwxNDUxLDQxOCBMMTQ0Niw0MTMgTDE0NDQsNDEzIEwxNDQzLDQxMiBMMTQ0Miw0MTIgTDE0MzksNDA5IEwxNDM0LDQwOSBMMTQzMiw0MDcgTDE0MzEsNDA3IEwxNDMwLDQwNiBMMTQzMCw0MDUgTDE0MjksNDA0IEwxNDI1LDQwNCBMMTQyNCw0MDMgTDE0MjQsNDAyIEwxNDIzLDQwMSBMMTQyMCw0MDEgTDE0MTgsMzk5IEwxNDE2LDM5OSBMMTQxNSwzOTggTDE0MTQsMzk4IEwxNDExLDM5NSBMMTQwNSwzOTUgTDE0MDQsMzk0IEwxNDA0LDM5MyBMMTQwMCwzOTMgTDEzOTksMzkyIEwxMzk5LDM5MSBMMTM5OCwzOTAgTDEzOTcsMzkwIEwxMzk2LDM4OSBMMTM5NiwzODggTDEzOTUsMzg3IEwxMzg5LDM4NyBMMTM4NiwzODQgTDEzODEsMzg0IEwxMzc4LDM4MSBMMTM3NSwzODEgTDEzNzMsMzc5IEwxMzcyLDM3OSBMMTM3MSwzNzggTDEzNjYsMzc4IEwxMzY0LDM3NiBMMTM2MSwzNzYgTDEzNTgsMzczIEwxMzUyLDM3MyBMMTM1MSwzNzIgTDEzNTEsMzcxIEwxMzUwLDM3MSBMMTM0OSwzNzAgTDEzMzgsMzcwIEwxMzM3LDM2OSBMMTMzNywzNjggTDEzMzYsMzY4IEwxMzM1LDM2NyBMMTMyNywzNjcgTDEzMjUsMzY1IEwxMzI0LDM2NSBMMTMyMywzNjQgTDEzMTMsMzY0IEwxMzExLDM2MiBMMTMwMiwzNjIgTDEyOTksMzU5IEwxMjg3LDM1OSBMMTI4NiwzNTggTDEyODYsMzU3IEwxMjg1LDM1NiBMMTI2MiwzNTYgTDEyNjEsMzU1IEwxMjYxLDM1NCBMMTI0NiwzNTQgTDEyNDUsMzUzIEwxMjM3LDM1MyBMMTIzNiwzNTQgTDEyMzUsMzU0IEwxMjM0LDM1MyBMMTE5MiwzNTMgTDExOTEsMzU0IEwxMTgyLDM1NCBaIiBmaWxsPSJ1cmwoI2dyYWRpZW50KSIgc3Ryb2tlPSJub25lIiAvPjwvc3ZnPg==';
 
     var typeOrder = {
-        outfit: 1, backpack: 2, pickaxe: 3, glider: 4, contrail: 5, emote: 6, emoji: 7, spray: 8,
-        wrap: 9, shoe: 10, companion: 11, banner: 12, music: 13, jamtrack: 13, loadingscreen: 14,
-        toy: 15, aura: 16,
-        guitar: 17, bass: 17, drum: 17, keytar: 17, microphone: 17,
-        car: 18, decal: 18, wheel: 18, trail: 18, boost: 18,
-        legokit: 19, unknown: 99
+        outfit: 1,
+        backpack: 2,
+        pickaxe: 3,
+        glider: 4,
+        contrail: 5,
+        emote: 6,
+        emoji: 7,
+        spray: 8,
+        wrap: 9,
+        shoe: 10,
+        companion: 11,
+        banner: 12,
+        music: 13,
+        jamtrack: 13,
+        loadingscreen: 14,
+        toy: 15,
+        aura: 16,
+        guitar: 17,
+        bass: 17,
+        drum: 17,
+        keytar: 17,
+        microphone: 17,
+        car: 18,
+        decal: 18,
+        wheel: 18,
+        trail: 18,
+        boost: 18,
+        legokit: 19,
+        unknown: 99
     };
-    var instrumentSort = { guitar: 1, bass: 2, drum: 3, keytar: 4, microphone: 5 };
-    var racingSort = { car: 1, decal: 2, wheel: 3, trail: 4, boost: 5 };
+    var instrumentSort = {
+        guitar: 1,
+        bass: 2,
+        drum: 3,
+        keytar: 4,
+        microphone: 5
+    };
+    var racingSort = {
+        car: 1,
+        decal: 2,
+        wheel: 3,
+        trail: 4,
+        boost: 5
+    };
 
     var typeMap = {
-        character: 'outfit', backbling: 'backpack', 'back bling': 'backpack', pet: 'backpack', petcarrier: 'backpack',
-        dance: 'emote', emoticon: 'emoji', 'harvesting tool': 'pickaxe', harvestingtool: 'pickaxe',
-        'skydiving trail': 'contrail', skydivercontrail: 'contrail', itemwrap: 'wrap', 'loading screen': 'loadingscreen',
-        musicpack: 'music', 'music pack': 'music', bannertoken: 'banner', shoes: 'shoe', kicks: 'shoe', sidekick: 'companion',
-        sparks_guitar: 'guitar', sparks_bass: 'bass', sparks_drum: 'drum', drums: 'drum', sparks_keyboard: 'keytar',
-        keyboard: 'keytar', sparks_microphone: 'microphone', mic: 'microphone', sparks_aura: 'aura', instrument: 'guitar',
-        track: 'jamtrack', 'jam track': 'jamtrack', sparks_song: 'jamtrack',
-        body: 'car', vehiclebody: 'car', skin: 'decal', vehicleskin: 'decal', wheels: 'wheel', vehiclewheels: 'wheel',
-        booster: 'boost', vehicleboost: 'boost', drifttrail: 'trail', vehiclebooster: 'trail',
-        legoset: 'legokit', legoprop: 'legokit', legobuild: 'legokit', lego: 'legokit', build: 'legokit',
-        juno_build: 'legokit', junobuild: 'legokit', decor: 'legokit', juno_decor: 'legokit', junodecor: 'legokit', legodecor: 'legokit'
+        character: 'outfit',
+        backbling: 'backpack',
+        'back bling': 'backpack',
+        pet: 'backpack',
+        petcarrier: 'backpack',
+        dance: 'emote',
+        emoticon: 'emoji',
+        'harvesting tool': 'pickaxe',
+        harvestingtool: 'pickaxe',
+        'skydiving trail': 'contrail',
+        skydivercontrail: 'contrail',
+        itemwrap: 'wrap',
+        'loading screen': 'loadingscreen',
+        musicpack: 'music',
+        'music pack': 'music',
+        bannertoken: 'banner',
+        shoes: 'shoe',
+        kicks: 'shoe',
+        sidekick: 'companion',
+        sparks_guitar: 'guitar',
+        sparks_bass: 'bass',
+        sparks_drum: 'drum',
+        drums: 'drum',
+        sparks_keyboard: 'keytar',
+        keyboard: 'keytar',
+        sparks_microphone: 'microphone',
+        mic: 'microphone',
+        sparks_aura: 'aura',
+        instrument: 'guitar',
+        track: 'jamtrack',
+        'jam track': 'jamtrack',
+        sparks_song: 'jamtrack',
+        body: 'car',
+        vehiclebody: 'car',
+        skin: 'decal',
+        vehicleskin: 'decal',
+        wheels: 'wheel',
+        vehiclewheels: 'wheel',
+        booster: 'boost',
+        vehicleboost: 'boost',
+        drifttrail: 'trail',
+        vehiclebooster: 'trail',
+        legoset: 'legokit',
+        legoprop: 'legokit',
+        legobuild: 'legokit',
+        lego: 'legokit',
+        build: 'legokit',
+        juno_build: 'legokit',
+        junobuild: 'legokit',
+        decor: 'legokit',
+        juno_decor: 'legokit',
+        junodecor: 'legokit',
+        legodecor: 'legokit'
     };
 
     var idPatterns = [
-        [/^cid_/, 'outfit'], [/^bid_|^petcarrier_/, 'backpack'], [/^pickaxe_/, 'pickaxe'], [/^glider_/, 'glider'],
-        [/^trails_/, 'contrail'], [/^eid_/, 'emote'], [/^emoji_/, 'emoji'], [/^spid_/, 'spray'], [/^wrap_/, 'wrap'],
-        [/^lsid_/, 'loadingscreen'], [/^musicpack_/, 'music'], [/^toy_/, 'toy'], [/^shoes_/, 'shoe'],
-        [/^companion_/, 'companion'], [/^banner/, 'banner'], [/^sid_|^sparks_song_/, 'jamtrack'], [/sparks_.*aura/, 'aura'],
-        [/_guitar|sparks_.*guitar/, 'guitar'], [/_bass|sparks_.*bass/, 'bass'], [/_drumkit|sparks_.*drum/, 'drum'],
-        [/_keytar|sparks_.*keyboard/, 'keytar'], [/_mic|sparks_.*microphone/, 'microphone'],
-        [/^id_body_|^vkc_/, 'car'], [/^id_skin_|^vks_/, 'decal'], [/^id_wheel_|^vkw_/, 'wheel'],
-        [/^id_boost_|^booster_|^vkb_/, 'boost'], [/^id_drifttrail_|^vkt_/, 'trail'], [/^jbsid_|^jbpid_|^juno_/, 'legokit']
+        [/^cid_/, 'outfit'],
+        [/^bid_|^petcarrier_/, 'backpack'],
+        [/^pickaxe_/, 'pickaxe'],
+        [/^glider_/, 'glider'],
+        [/^trails_/, 'contrail'],
+        [/^eid_/, 'emote'],
+        [/^emoji_/, 'emoji'],
+        [/^spid_/, 'spray'],
+        [/^wrap_/, 'wrap'],
+        [/^lsid_/, 'loadingscreen'],
+        [/^musicpack_/, 'music'],
+        [/^toy_/, 'toy'],
+        [/^shoes_/, 'shoe'],
+        [/^companion_/, 'companion'],
+        [/^banner/, 'banner'],
+        [/^sid_|^sparks_song_/, 'jamtrack'],
+        [/sparks_.*aura/, 'aura'],
+        [/_guitar|sparks_.*guitar/, 'guitar'],
+        [/_bass|sparks_.*bass/, 'bass'],
+        [/_drumkit|sparks_.*drum/, 'drum'],
+        [/_keytar|sparks_.*keyboard/, 'keytar'],
+        [/_mic|sparks_.*microphone/, 'microphone'],
+        [/^id_body_|^vkc_/, 'car'],
+        [/^id_skin_|^vks_/, 'decal'],
+        [/^id_wheel_|^vkw_/, 'wheel'],
+        [/^id_boost_|^booster_|^vkb_/, 'boost'],
+        [/^id_drifttrail_|^vkt_/, 'trail'],
+        [/^jbsid_|^jbpid_|^juno_/, 'legokit']
     ];
 
     var seriesBonus = {
-        marvel: 8800, dc: 8700, dark: 8600, cube: 8600, starwars: 8500, 'star wars': 8500,
-        gaming: 8400, icon: 8300, columbus: 8300, creator: 8300, frozen: 8200, lava: 8100, shadow: 8000, slurp: 7900
+        marvel: 8800,
+        dc: 8700,
+        dark: 8600,
+        cube: 8600,
+        starwars: 8500,
+        'star wars': 8500,
+        gaming: 8400,
+        icon: 8300,
+        columbus: 8300,
+        creator: 8300,
+        frozen: 8200,
+        lava: 8100,
+        shadow: 8000,
+        slurp: 7900
     };
-    var rarityScore = { legendary: 900, epic: 700, rare: 600, uncommon: 500, common: 400 };
+    var rarityScore = {
+        legendary: 900,
+        epic: 700,
+        rare: 600,
+        uncommon: 500,
+        common: 400
+    };
 
     var session = null;
     var working = false;
@@ -105,40 +221,70 @@
     var cosmeticsData = null;
 
     function getSettings() {
-        try { return JSON.parse(GM_getValue('fngg_settings', '{}')); }
-        catch(e) { return {}; }
+        try {
+            return JSON.parse(GM_getValue('fngg_settings', '{}'));
+        } catch (e) {
+            return {};
+        }
     }
+
     function saveSetting(k, v) {
-        var s = getSettings(); s[k] = v;
+        var s = getSettings();
+        s[k] = v;
         GM_setValue('fngg_settings', JSON.stringify(s));
     }
 
     function saveSession(d) {
         GM_setValue('epic_session', JSON.stringify({
-            token: d.accessToken, id: d.accountId, name: d.displayName, ts: Date.now()
+            token: d.accessToken,
+            id: d.accountId,
+            name: d.displayName,
+            ts: Date.now()
         }));
     }
+
     function loadSession() {
         try {
             var d = JSON.parse(GM_getValue('epic_session'));
             if (!d || Date.now() - d.ts > SESSION_TIMEOUT) return null;
-            return { accessToken: d.token, accountId: d.id, displayName: d.name };
-        } catch(e) { return null; }
+            return {
+                accessToken: d.token,
+                accountId: d.id,
+                displayName: d.name
+            };
+        } catch (e) {
+            return null;
+        }
     }
+
     function clearSession() {
         GM_deleteValue('epic_session');
         session = null;
     }
-    
-    function $(id) { return document.getElementById(id); }
+
+    function $(id) {
+        return document.getElementById(id);
+    }
 
     function http(method, url, headers, body) {
-        return new Promise(function(res, rej) {
+        return new Promise(function (res, rej) {
             GM_xmlhttpRequest({
-                method: method, url: url, headers: headers || {}, data: body,
-                onload: function(r) {
-                    try { res({ status: r.status, data: JSON.parse(r.responseText) }); }
-                    catch(e) { res({ status: r.status, data: r.responseText }); }
+                method: method,
+                url: url,
+                headers: headers || {},
+                data: body,
+                onload: function (r) {
+                    try {
+                        res({
+                            status: r.status,
+                            data: JSON.parse(r.responseText)
+                        });
+                    } catch (e) {
+                        res({
+                            status: r.status,
+                            data: r.responseText
+                        });
+                    }
                 },
                 onerror: rej
             });
@@ -150,6 +296,7 @@
         var l = t.toLowerCase();
         return typeMap[l] || (typeOrder[l] !== undefined ? l : 'unknown');
     }
+
     function guessType(id) {
         var l = id.toLowerCase();
         for (var i = 0; i < idPatterns.length; i++) {
@@ -157,35 +304,49 @@
         }
         return null;
     }
+
     function getScore(item) {
         if (item.series) {
             var s = item.series.toLowerCase();
-            for (var k in seriesBonus) if (s.indexOf(k) !== -1) return seriesBonus[k];
+            for (var k in seriesBonus)
+                if (s.indexOf(k) !== -1) return seriesBonus[k];
             return 7500;
         }
         return rarityScore[item.rarity] || 100;
     }
-    
+
     function processItemsFromProfile(itemsObj, fngg, cdb, seen, skipped, unmappedItems) {
         var result = [];
         for (var key in itemsObj) {
             var tid = itemsObj[key].templateId || '';
-            if (tid.indexOf(':') === -1) { skipped.noBid++; continue; }
+            if (tid.indexOf(':') === -1) {
+                skipped.noBid++;
+                continue;
+            }
             var bid = tid.split(':')[1].toLowerCase();
             var fid = fngg[bid];
-            if (!fid || isNaN(fid)) { 
-                skipped.noMapping++; 
+            if (!fid || isNaN(fid)) {
+                skipped.noMapping++;
                 unmappedItems.push(bid);
-                continue; 
+                continue;
             }
-            if (seen[fid]) { skipped.duplicate++; continue; }
+            if (seen[fid]) {
+                skipped.duplicate++;
+                continue;
+            }
             seen[fid] = true;
 
             var meta = cdb[bid] || {};
             var type = normalizeType(meta.type);
             if (!type || type === 'unknown') type = guessType(bid) || 'unknown';
 
-            result.push({ fid: fid, name: meta.name || bid, type: type, rarity: meta.rarity || 'common', series: meta.series || null });
+            result.push({
+                fid: fid,
+                name: meta.name || bid,
+                type: type,
+                rarity: meta.rarity || 'common',
+                series: meta.series || null
+            });
         }
         return result;
     }
@@ -274,18 +435,23 @@
     `);
 
     var btnText = 'Import Locker';
-    function setStatus(t) { 
+
+    function setStatus(t) {
         btnText = t;
         var btn = $('ibtn');
         if (btn) btn.textContent = t;
     }
+
     function toast(msg, type) {
         var t = $('fngg-toast');
         if (!t) return;
         t.textContent = msg;
         t.className = 'show ' + (type || '');
-        setTimeout(function() { t.className = ''; }, 3000);
+        setTimeout(function () {
+            t.className = '';
+        }, 3000);
     }
+
     function modal(id, show) {
         var m = $(id);
         if (m) m.classList.toggle('show', show);
@@ -303,16 +469,16 @@
             var lockIcon = autoLogout ? '🔓' : '🔒';
             var lockText = autoLogout ? 'Auto<br>Logout' : 'Keep<br>Login';
             var lockTitle = autoLogout ? 'Click to disable auto-logout' : 'Click to enable auto-logout';
-            var lockStyle = autoLogout 
-                ? 'background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#ef4444' 
-                : 'background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.2);color:#22c55e';
-            
-            uel.innerHTML = '<div class="ucard"><img src="'+avatar+'"><div class="info"><div class="name">'+session.displayName+'</div><div class="status">Connected</div></div><button class="lout" id="autoLogoutBtn" style="width:52px;margin-right:6px;padding:4px;font-size:14px;line-height:1.2;'+lockStyle+'" title="'+lockTitle+'">'+lockIcon+'<div style="font-size:8px;margin-top:2px;text-transform:uppercase;letter-spacing:0">'+lockText+'</div></button><button class="lout" id="lout">Logout</button></div>';
-            ael.innerHTML = '<button class="btn btn-g" id="ibtn"'+(working?' disabled':'')+'>'+btnText+'</button>';
-            
+            var lockStyle = autoLogout ?
+                'background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.3);color:#ef4444' :
+                'background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.2);color:#22c55e';
+
+            uel.innerHTML = '<div class="ucard"><img src="' + avatar + '"><div class="info"><div class="name">' + session.displayName + '</div><div class="status">Connected</div></div><button class="lout" id="autoLogoutBtn" style="width:52px;margin-right:6px;padding:4px;font-size:14px;line-height:1.2;' + lockStyle + '" title="' + lockTitle + '">' + lockIcon + '<div style="font-size:8px;margin-top:2px;text-transform:uppercase;letter-spacing:0">' + lockText + '</div></button><button class="lout" id="lout">Logout</button></div>';
+            ael.innerHTML = '<button class="btn btn-g" id="ibtn"' + (working ? ' disabled' : '') + '>' + btnText + '</button>';
+
             $('lout').onclick = logout;
             $('ibtn').onclick = doImport;
-            $('autoLogoutBtn').onclick = function() {
+            $('autoLogoutBtn').onclick = function () {
                 saveSetting('autoLogout', !autoLogout);
                 updateUI();
             };
@@ -332,23 +498,23 @@
 
         var p = document.createElement('div');
         p.id = 'fngg-panel';
-        p.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>Locker Import</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="dbtn" title="Debug">🐛</button><button class="fngg-hbtn" id="ibtn2" title="Info">?</button></div></div><div class="body"><div id="usec"></div><div id="asec"></div></div>';
+        p.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="' + LOGO + '"><span>Locker Import</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="dbtn" title="Debug">🐛</button><button class="fngg-hbtn" id="ibtn2" title="Info">?</button></div></div><div class="body"><div id="usec"></div><div id="asec"></div></div>';
         document.body.appendChild(p);
 
         var ip = document.createElement('div');
         ip.id = 'fngg-info';
-        ip.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>Info</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="cibtn">✕</button></div></div><div class="body"><div class="isec"><h3>🎯 What does this do?</h3><p>Imports your entire Fortnite locker to fortnite.gg with one click. All cosmetics (skins, pickaxes, emotes, etc.) get sorted automatically by type and rarity.</p></div><div class="isec"><h3>🔐 Is this safe?</h3><p>100% safe! Uses Epic\'s official Device Code authentication. Your password never touches this script, you login directly on Epic\'s website.</p></div><div class="isec"><h3>⚡ How it works</h3><p>1. Click "Connect Epic Account"<br>2. Login on Epic\'s website<br>3. Click "Import Locker"<br>4. Done! Your locker is updated.</p></div><div class="isec"><h3>🔑 Token Info</h3><p>The access token expires after ~2 hours. After that, simply reconnect. We never store your password.</p></div><div class="isec"><h3>❤️ Support me</h3><p>If you like this tool, use Creator Code <strong style="color:#f0db4f">'+SAC+'</strong> in the Fortnite Item Shop!</p></div><div class="isec footer"><p class="credit">Made with ❤️ by <a href="https://github.com/ItsReepze" target="_blank">Reepze</a></p><p class="links"><a href="https://github.com/ItsReepze/fngg-locker-importer" target="_blank">GitHub</a> · <a href="https://greasyfork.org/en/scripts/563780" target="_blank">Greasyfork</a></p><p class="disclaimer">Not affiliated with Epic Games or fortnite.gg</p><p class="version">v'+VERSION+'</p></div></div>';
+        ip.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="' + LOGO + '"><span>Info</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="cibtn">✕</button></div></div><div class="body"><div class="isec"><h3>🎯 What does this do?</h3><p>Imports your entire Fortnite locker to fortnite.gg with one click. All cosmetics (skins, pickaxes, emotes, etc.) get sorted automatically by type and rarity.</p></div><div class="isec"><h3>🔐 Is this safe?</h3><p>100% safe! Uses Epic\'s official Device Code authentication. Your password never touches this script, you login directly on Epic\'s website.</p></div><div class="isec"><h3>⚡ How it works</h3><p>1. Click "Connect Epic Account"<br>2. Login on Epic\'s website<br>3. Click "Import Locker"<br>4. Done! Your locker is updated.</p></div><div class="isec"><h3>🔑 Token Info</h3><p>The access token expires after ~2 hours. After that, simply reconnect. We never store your password.</p></div><div class="isec"><h3>❤️ Support me</h3><p>If you like this tool, use Creator Code <strong style="color:#f0db4f">' + SAC + '</strong> in the Fortnite Item Shop!</p></div><div class="isec footer"><p class="credit">Made with ❤️ by <a href="https://github.com/ItsReepze" target="_blank">Reepze</a></p><p class="links"><a href="https://github.com/ItsReepze/fngg-locker-importer" target="_blank">GitHub</a> · <a href="https://greasyfork.org/en/scripts/563780" target="_blank">Greasyfork</a></p><p class="disclaimer">Not affiliated with Epic Games or fortnite.gg</p><p class="version">v' + VERSION + '</p></div></div>';
         document.body.appendChild(ip);
 
         var dp = document.createElement('div');
         dp.id = 'fngg-debug';
-        dp.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>Debug Console</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="cdbtn">✕</button></div></div><div class="body"><div class="isec"><h3>📊 Import Statistics</h3><p id="debug-stats">No import data yet. Run an import to see statistics.</p></div><div class="isec" style="flex:1;display:flex;flex-direction:column"><h3>⚠️ Unmapped Items</h3><p style="font-size:11px;color:#888;margin-bottom:8px;line-height:1.4">These are NOT cosmetics. They are quest trackers, tokens, schedules, and other backend items that don\'t exist in FortniteGG\'s database. This is completely normal.</p><div id="debug-unmapped" style="font-size:11px;color:#999;overflow-y:auto;font-family:monospace;line-height:1.8;flex:1;word-break:break-all;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;border:1px solid rgba(255,255,255,.05);white-space:pre-wrap">No data yet.</div></div></div>';
+        dp.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="' + LOGO + '"><span>Debug Console</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="cdbtn">✕</button></div></div><div class="body"><div class="isec"><h3>📊 Import Statistics</h3><p id="debug-stats">No import data yet. Run an import to see statistics.</p></div><div class="isec" style="flex:1;display:flex;flex-direction:column"><h3>⚠️ Unmapped Items</h3><p style="font-size:11px;color:#888;margin-bottom:8px;line-height:1.4">These are NOT cosmetics. They are quest trackers, tokens, schedules, and other backend items that don\'t exist in FortniteGG\'s database. This is completely normal.</p><div id="debug-unmapped" style="font-size:11px;color:#999;overflow-y:auto;font-family:monospace;line-height:1.8;flex:1;word-break:break-all;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;border:1px solid rgba(255,255,255,.05);white-space:pre-wrap">No data yet.</div></div></div>';
         document.body.appendChild(dp);
 
         var sm = document.createElement('div');
         sm.id = 'smodal';
         sm.className = 'fngg-m';
-        sm.innerHTML = '<div class="mbox"><div class="sicon">🎉</div><div class="mtitle">Done!</div><div class="stxt2"><span id="icnt">Your items</span> are ready.<br><br>This is free btw. If you wanna support, use code <strong>"'+SAC+'"</strong> in the shop.<br><br><span style="color:#555;font-size:11px;">You can always change it in-game later.</span></div><button class="btn btn-sac" id="ybtn">❤️ Use code & continue</button><button class="btn-skip" id="nbtn">nah maybe later</button></div>';
+        sm.innerHTML = '<div class="mbox"><div class="sicon">🎉</div><div class="mtitle">Done!</div><div class="stxt2"><span id="icnt">Your items</span> are ready.<br><br>This is free btw. If you wanna support, use code <strong>"' + SAC + '"</strong> in the shop.<br><br><span style="color:#555;font-size:11px;">You can always change it in-game later.</span></div><button class="btn btn-sac" id="ybtn">❤️ Use code & continue</button><button class="btn-skip" id="nbtn">nah maybe later</button></div>';
         document.body.appendChild(sm);
 
         var te = document.createElement('div');
@@ -371,12 +537,15 @@
             }
         }
 
-        var observer = new MutationObserver(function() {
+        var observer = new MutationObserver(function () {
             if ($('fngg-info').classList.contains('show')) {
                 setTimeout(updateInfoPosition, 10);
             }
         });
-        observer.observe(p, { childList: true, subtree: true });
+        observer.observe(p, {
+            childList: true,
+            subtree: true
+        });
 
         if (getSettings().panelMin) {
             p.classList.add('min');
@@ -390,7 +559,7 @@
             setTimeout(updateInfoPosition, 50);
         }
 
-        window.addEventListener('resize', function() {
+        window.addEventListener('resize', function () {
             if ($('fngg-info').classList.contains('show')) {
                 updateInfoPosition();
             }
@@ -401,7 +570,7 @@
             tab.classList.toggle('open', !isMin);
             tab.innerHTML = isMin ? '‹' : '›';
             saveSetting('panelMin', isMin);
-            
+
             var info = $('fngg-info');
             if (infoActive) {
                 info.classList.toggle('show', !isMin);
@@ -410,7 +579,7 @@
         }
 
         tab.onclick = togglePanel;
-        $('ibtn2').onclick = function() {
+        $('ibtn2').onclick = function () {
             var info = $('fngg-info');
             var willShow = !info.classList.contains('show');
             infoActive = willShow;
@@ -418,7 +587,7 @@
             info.classList.toggle('show', willShow);
             if (willShow) setTimeout(updateInfoPosition, 50);
         };
-        $('cibtn').onclick = function() { 
+        $('cibtn').onclick = function () {
             infoActive = false;
             saveSetting('infoClosed', true);
             $('fngg-info').classList.remove('show');
@@ -426,31 +595,31 @@
 
         var debugActive = !getSettings().debugClosed;
         if (debugActive) $('fngg-debug').classList.add('show');
-        
-        $('dbtn').onclick = function() {
+
+        $('dbtn').onclick = function () {
             var debug = $('fngg-debug');
             var willShow = !debug.classList.contains('show');
             debugActive = willShow;
             saveSetting('debugClosed', !willShow);
             debug.classList.toggle('show', willShow);
         };
-        $('cdbtn').onclick = function() {
+        $('cdbtn').onclick = function () {
             debugActive = false;
             saveSetting('debugClosed', true);
             $('fngg-debug').classList.remove('show');
         };
 
-        $('ybtn').onclick = async function() {
+        $('ybtn').onclick = async function () {
             saveSetting('supportCreator', true);
             modal('smodal', false);
             var ok = await setSAC();
             toast(ok ? 'Thanks! ❤️' : 'Couldn\'t set code', ok ? 'ok' : 'err');
-            setTimeout(function() {
+            setTimeout(function () {
                 var url = $('smodal').dataset.url;
                 if (url) location.href = url;
             }, 800);
         };
-        $('nbtn').onclick = function() {
+        $('nbtn').onclick = function () {
             modal('smodal', false);
             var url = $('smodal').dataset.url;
             if (url) location.href = url;
@@ -464,12 +633,12 @@
                 if (el) el.innerHTML = data.stats || 'No import data yet.';
                 var unmappedEl = $('debug-unmapped');
                 if (unmappedEl) unmappedEl.textContent = data.unmapped || 'No data yet.';
-            } catch(e) {}
+            } catch (e) { }
         }
 
         initSession();
-        
-        setTimeout(function() {
+
+        setTimeout(function () {
             if (GM_getValue('pendingAutoLogout', null) === 'true') {
                 GM_deleteValue('pendingAutoLogout');
                 clearSession();
@@ -483,13 +652,16 @@
         var s = loadSession();
         if (s) {
             try {
-                var r = await http('GET', epicBase + '/account/api/oauth/verify', { 'Authorization': 'Bearer ' + s.accessToken });
+                var r = await http('GET', epicBase + '/account/api/oauth/verify', {
+                    'Authorization': 'Bearer ' + s.accessToken
+                });
                 if (r.status === 200) {
                     session = s;
                     fetchCurrentSkin();
-                }
-                else clearSession();
-            } catch(e) { clearSession(); }
+                } else clearSession();
+            } catch (e) {
+                clearSession();
+            }
         }
         updateUI();
     }
@@ -502,7 +674,7 @@
                 session.skinIcon = avatarImg.src;
                 updateUI();
             }
-        } catch(e) {}
+        } catch (e) { }
     }
 
     async function startLogin() {
@@ -526,7 +698,7 @@
             window.open(verifyUri, '_blank');
             pollInterval = setInterval(pollLogin, POLL_INTERVAL);
             updateUI();
-        } catch(e) {
+        } catch (e) {
             setStatus('Connect Epic Account');
             toast('Couldn\'t connect to Epic', 'err');
         }
@@ -540,27 +712,38 @@
             }, 'grant_type=device_code&device_code=' + deviceCode);
 
             if (r.status === 200 && r.data.access_token) {
-                clearInterval(pollInterval); pollInterval = null;
-                deviceCode = null; verifyUri = null;
-                session = { accessToken: r.data.access_token, accountId: r.data.account_id, displayName: r.data.displayName };
+                clearInterval(pollInterval);
+                pollInterval = null;
+                deviceCode = null;
+                verifyUri = null;
+                session = {
+                    accessToken: r.data.access_token,
+                    accountId: r.data.account_id,
+                    displayName: r.data.displayName
+                };
                 saveSession(session);
                 setStatus('Import Locker');
                 updateUI();
                 toast('Hey ' + session.displayName + '!', 'ok');
                 fetchCurrentSkin();
             }
-        } catch(e) {}
+        } catch (e) { }
     }
 
     function cancelLogin() {
-        if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
-        deviceCode = null; verifyUri = null;
+        if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+        }
+        deviceCode = null;
+        verifyUri = null;
         setStatus('Connect Epic Account');
         updateUI();
     }
 
     function logout() {
-        clearSession(); updateUI();
+        clearSession();
+        updateUI();
         setStatus('Import Locker');
         toast('Logged out', 'ok');
     }
@@ -569,19 +752,31 @@
         if (!session) return false;
         try {
             var r = await http('POST', fnBase + '/fortnite/api/game/v2/profile/' + session.accountId + '/client/SetAffiliateName?profileId=common_core', {
-                'Authorization': 'Bearer ' + session.accessToken, 'Content-Type': 'application/json'
-            }, JSON.stringify({ affiliateName: SAC }));
+                'Authorization': 'Bearer ' + session.accessToken,
+                'Content-Type': 'application/json'
+            }, JSON.stringify({
+                affiliateName: SAC
+            }));
             return r.status === 200 || r.status === 204;
-        } catch(e) { return false; }
+        } catch (e) {
+            return false;
+        }
     }
 
     async function loadCosmetics() {
         if (cosmeticsData) return cosmeticsData;
         cosmeticsData = {};
 
-        var eps = [['br', null], ['cars', 'car'], ['instruments', 'guitar'], ['tracks', 'jamtrack'], ['lego/kits', 'legokit'], ['lego', 'legokit']];
+        var eps = [
+            ['br', null],
+            ['cars', 'car'],
+            ['instruments', 'guitar'],
+            ['tracks', 'jamtrack'],
+            ['lego/kits', 'legokit'],
+            ['lego', 'legokit']
+        ];
         for (var i = 0; i < eps.length; i++) {
-            setStatus('Loading cosmetics (' + (i+1) + '/' + eps.length + ')...');
+            setStatus('Loading cosmetics (' + (i + 1) + '/' + eps.length + ')...');
             try {
                 var r = await http('GET', 'https://fortnite-api.com/v2/cosmetics/' + eps[i][0]);
                 if (r.status !== 200 || !r.data || !r.data.data) continue;
@@ -593,7 +788,7 @@
                     var rar = (item.rarity && item.rarity.value) ? item.rarity.value.toLowerCase() : 'common';
                     var ser = (item.series && item.series.value) ? item.series.value : null;
 
-                    var srars = ['starwars','marvel','dc','icon','gaming','frozen','lava','shadow','slurp','dark'];
+                    var srars = ['starwars', 'marvel', 'dc', 'icon', 'gaming', 'frozen', 'lava', 'shadow', 'slurp', 'dark'];
                     if (srars.indexOf(rar) !== -1) {
                         ser = rar;
                         var bv = (item.rarity && item.rarity.backendValue) || '';
@@ -607,17 +802,20 @@
                     cosmeticsData[id] = {
                         name: item.name || id,
                         type: normalizeType(item.type ? item.type.value : null) || eps[i][1] || 'unknown',
-                        rarity: rar, series: ser
+                        rarity: rar,
+                        series: ser
                     };
                 }
-            } catch(e) {}
+            } catch (e) { }
         }
         return cosmeticsData;
     }
 
+
     async function doImport() {
         if (working || !session) return;
-        working = true; updateUI();
+        working = true;
+        updateUI();
 
         try {
             var cdb = await loadCosmetics();
@@ -627,7 +825,8 @@
             if (fr.status !== 200) {
                 setStatus('fortnite.gg not reachable');
                 toast('fortnite.gg not reachable', 'err');
-                working = false; updateUI();
+                working = false;
+                updateUI();
                 return;
             }
             var fngg = {};
@@ -635,73 +834,122 @@
 
             setStatus('Loading locker...');
             var ar = await http('POST', fnBase + '/fortnite/api/game/v2/profile/' + session.accountId + '/client/QueryProfile?profileId=athena&rvn=-1', {
-                'Authorization': 'Bearer ' + session.accessToken, 'Content-Type': 'application/json'
+                'Authorization': 'Bearer ' + session.accessToken,
+                'Content-Type': 'application/json'
             }, '{}');
 
-            if (ar.status === 401) { clearSession(); updateUI(); toast('Session expired', 'err'); setStatus('Session expired'); working = false; return; }
-            if (ar.status !== 200) { toast('Epic API error (' + ar.status + ')', 'err'); setStatus('Epic API error'); working = false; updateUI(); return; }
+            if (ar.status === 401) {
+                clearSession();
+                updateUI();
+                toast('Session expired', 'err');
+                setStatus('Session expired');
+                working = false;
+                return;
+            }
+            if (ar.status !== 200) {
+                toast('Epic API error (' + ar.status + ')', 'err');
+                setStatus('Epic API error');
+                working = false;
+                updateUI();
+                return;
+            }
 
             var ap = ar.data && ar.data.profileChanges && ar.data.profileChanges[0] ? ar.data.profileChanges[0].profile : null;
             var ai = (ap && ap.items) || {};
             var created = (ap && ap.created) ? ap.created.split('T')[0] : '2017-01-01';
 
             setStatus('Loading banners...');
-            var ci = {}, currentSAC = null;
+            var ci = {},
+                currentSAC = null;
             try {
                 var cr = await http('POST', fnBase + '/fortnite/api/game/v2/profile/' + session.accountId + '/client/QueryProfile?profileId=common_core&rvn=-1', {
-                    'Authorization': 'Bearer ' + session.accessToken, 'Content-Type': 'application/json'
+                    'Authorization': 'Bearer ' + session.accessToken,
+                    'Content-Type': 'application/json'
                 }, '{}');
                 if (cr.status === 200) {
                     var cp = cr.data && cr.data.profileChanges && cr.data.profileChanges[0] ? cr.data.profileChanges[0].profile : null;
                     ci = (cp && cp.items) || {};
                     currentSAC = (cp && cp.stats && cp.stats.attributes) ? cp.stats.attributes.mtx_affiliate : null;
-                } else if (cr.status === 401) { clearSession(); updateUI(); toast('Session expired', 'err'); working = false; return; }
-            } catch(e) {}
+                } else if (cr.status === 401) {
+                    clearSession();
+                    updateUI();
+                    toast('Session expired', 'err');
+                    working = false;
+                    return;
+                }
+            } catch (e) { }
 
             setStatus('Processing...');
             var items = [];
-            var skipped = { noBid: 0, noMapping: 0, duplicate: 0 };
+            var skipped = {
+                noBid: 0,
+                noMapping: 0,
+                duplicate: 0
+            };
             var unmappedItems = [];
             var seen = {};
-            
+
             items = items.concat(processItemsFromProfile(ai, fngg, cdb, seen, skipped, unmappedItems));
             items = items.concat(processItemsFromProfile(ci, fngg, cdb, seen, skipped, unmappedItems));
 
-            if (!items.length) { setStatus('Nothing found'); toast('No items', 'err'); working = false; updateUI(); return; }
-            
+            if (!items.length) {
+                setStatus('Nothing found');
+                toast('No items', 'err');
+                working = false;
+                updateUI();
+                return;
+            }
+
+            var existingSet = {};
+            if (unsafeWindow.LockerItems && Array.isArray(unsafeWindow.LockerItems)) {
+                for (var li = 0; li < unsafeWindow.LockerItems.length; li++) existingSet[unsafeWindow.LockerItems[li]] = true;
+            }
+            var hasExisting = Object.keys(existingSet).length > 0;
+            var newCount = 0;
+            for (var n = 0; n < items.length; n++) {
+                if (!existingSet[items[n].fid]) newCount++;
+            }
+            var skippedCount = items.length - newCount;
+
             var totalItems = items.length;
             var totalProcessed = totalItems + skipped.noBid + skipped.noMapping + skipped.duplicate;
-            var statsHTML = 
-                '<strong style="color:#4ade80">✓ ' + totalItems + ' items imported</strong><br>' +
+            var statsHTML =
+                '<strong style="color:#4ade80">\u2713 ' + totalItems + ' items total</strong><br>' +
+                (hasExisting && skippedCount > 0 ? '<span style="color:#f0db4f">\u2605 ' + newCount + ' new, ' + skippedCount + ' already in locker</span><br>' : '') +
                 '<span style="color:#888">Total processed: ' + totalProcessed + '</span><br><br>' +
-                '<strong style="color:#ef4444">⚠ ' + skipped.noMapping + ' items unmapped</strong><br>' +
+                '<strong style="color:#ef4444">\u26a0 ' + skipped.noMapping + ' items unmapped</strong><br>' +
                 '<span style="color:#888">' + skipped.duplicate + ' duplicates, ' + skipped.noBid + ' invalid</span>';
-            
+
             var unmappedHTML;
             if (unmappedItems.length > 0) {
                 unmappedHTML = unmappedItems.join('\n');
             } else {
                 unmappedHTML = 'All items mapped successfully!';
             }
-            
+
             var el = $('debug-stats');
             if (el) el.innerHTML = statsHTML;
             var unmappedEl = $('debug-unmapped');
             if (unmappedEl) unmappedEl.textContent = unmappedHTML;
-            
-            GM_setValue('debugData', JSON.stringify({ stats: statsHTML, unmapped: unmappedHTML }));
+
+            GM_setValue('debugData', JSON.stringify({
+                stats: statsHTML,
+                unmapped: unmappedHTML
+            }));
 
             setStatus('Sorting...');
-            items.sort(function(a, b) {
+            items.sort(function (a, b) {
                 var ta = typeOrder[a.type] !== undefined ? typeOrder[a.type] : 99;
                 var tb = typeOrder[b.type] !== undefined ? typeOrder[b.type] : 99;
                 if (ta !== tb) return ta - tb;
                 if (ta === 17) {
-                    var ia = instrumentSort[a.type] || 99, ib = instrumentSort[b.type] || 99;
+                    var ia = instrumentSort[a.type] || 99,
+                        ib = instrumentSort[b.type] || 99;
                     if (ia !== ib) return ia - ib;
                 }
                 if (ta === 18) {
-                    var ra = racingSort[a.type] || 99, rb = racingSort[b.type] || 99;
+                    var ra = racingSort[a.type] || 99,
+                        rb = racingSort[b.type] || 99;
                     if (ra !== rb) return ra - rb;
                 }
                 var sc = getScore(b) - getScore(a);
@@ -713,36 +961,43 @@
             var ids = [];
             for (var i = 0; i < items.length; i++) ids.push(items[i].fid);
 
-            ids.sort(function(a, b) { return a - b; });
+            ids.sort(function (a, b) {
+                return a - b;
+            });
 
             var diffs = [];
-            for (i = 0; i < ids.length; i++) diffs.push(i === 0 ? ids[i] : ids[i] - ids[i-1]);
+            for (i = 0; i < ids.length; i++) diffs.push(i === 0 ? ids[i] : ids[i] - ids[i - 1]);
 
             var str = created + ',' + diffs.join(',');
-            var comp = window.pako.deflateRaw(str, { level: 9 });
-            var b64 = btoa(String.fromCharCode.apply(null, comp)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+            var comp = window.pako.deflateRaw(str, {
+                level: 9
+            });
+            var b64 = btoa(String.fromCharCode.apply(null, comp)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
             setStatus('Getting fortnite.gg ID...');
             var fnggId = null;
-            
+
             var urlMatch = location.href.match(/locker\?id=(\d+)/);
             if (urlMatch) {
                 fnggId = urlMatch[1];
             }
-            
+
             if (!fnggId) {
                 try {
-                    var myLockerResp = await fetch('https://fortnite.gg/my-locker', { credentials: 'include' });
+                    var myLockerResp = await fetch('https://fortnite.gg/my-locker', {
+                        credentials: 'include'
+                    });
                     var myLockerHtml = await myLockerResp.text();
                     var idMatch = myLockerHtml.match(/locker\?id=(\d+)/);
                     if (idMatch) fnggId = idMatch[1];
-                } catch(e) {}
+                } catch (e) { }
             }
-            
+
             if (!fnggId) {
                 setStatus('Not logged in to fortnite.gg');
                 toast('Please login to fortnite.gg first!', 'err');
-                working = false; updateUI();
+                working = false;
+                updateUI();
                 return;
             }
 
@@ -751,33 +1006,49 @@
             if (importUrl.length > 32000) {
                 setStatus('Locker too large');
                 toast('Locker too large (' + items.length + ' items)', 'err');
-                working = false; updateUI();
+                working = false;
+                updateUI();
                 return;
             }
 
-            setStatus('Done! ' + items.length + ' items');
-            toast(items.length + ' items', 'ok');
-            working = false; updateUI();
+            if (hasExisting) {
+                setStatus('Done! ' + totalItems + ' total, +' + newCount + ' new, ' + skippedCount + ' dupes');
+                toast(totalItems + ' total • +' + newCount + ' added • ' + skippedCount + ' already in locker', 'ok');
+            } else {
+                setStatus('Done! ' + totalItems + ' items');
+                toast(totalItems + ' items', 'ok');
+            }
+            working = false;
+            updateUI();
 
             var already = currentSAC && currentSAC.trim().toLowerCase() === SAC.toLowerCase();
-            
+
             var s = getSettings();
             if (s.autoLogout === undefined || s.autoLogout) GM_setValue('pendingAutoLogout', 'true');
-            
+
             if (already) {
-                setTimeout(function() { location.href = importUrl; }, 600);
+                setTimeout(function () {
+                    location.href = importUrl;
+                }, 600);
             } else {
                 $('smodal').dataset.url = importUrl;
-                var el = $('icnt');
-                if (el) el.innerHTML = '<strong>' + items.length + ' items</strong>';
-                setTimeout(function() { modal('smodal', true); }, 400);
+                var elModal = $('icnt');
+                if (elModal) {
+                    elModal.innerHTML = hasExisting ?
+                        '<strong>' + totalItems + ' total</strong> <span style="color:#888;font-size:12px">&nbsp;+' + newCount + ' added &nbsp;&bull;&nbsp; ' + skippedCount + ' already in locker</span>' :
+                        '<strong>' + totalItems + ' items</strong>';
+                }
+                setTimeout(function () {
+                    modal('smodal', true);
+                }, 400);
             }
-        } catch(e) {
+        } catch (e) {
             var msg = 'Import failed';
             if (e && typeof e === 'string') msg = e;
             setStatus(msg);
             toast(msg, 'err');
-            working = false; updateUI();
+            working = false;
+            updateUI();
         }
     }
 
