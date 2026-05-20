@@ -811,7 +811,6 @@
         return cosmeticsData;
     }
 
-
     async function doImport() {
         if (working || !session) return;
         working = true;
