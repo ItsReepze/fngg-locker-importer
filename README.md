@@ -1,117 +1,115 @@
-# Fortnite.gg Locker Importer
+<div align="center">
 
-Automatically import your entire Fortnite locker to Fortnite.gg in seconds.
+# 🎒 Fortnite.gg Locker Importer
 
-![Version](https://img.shields.io/badge/version-3.1-blue)
-![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)
+**Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with one click.**
+
+[![Install](https://img.shields.io/badge/Install-Greasyfork-670000?style=for-the-badge)](https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer)
+[![Version](https://img.shields.io/badge/Version-3.7-f0db4f?style=for-the-badge)](https://github.com/ItsReepze/fngg-locker-importer/releases)
+[![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
+
+No downloads. No .exe files. No password sharing. Runs entirely in your browser.
+
+<!-- Demo GIF coming soon. Record a 10 second loop of Connect > Login > Import > Done,
+upload it as docs/demo.gif and add this line here:
+![Demo](docs/demo.gif) -->
+
+</div>
 
 ## ✨ Features
 
-- **Fast Import** - Import 8500+ items in seconds instead of hours
-- **Automatic Sync** - Fetches your locker directly from Epic Games
-- **Optimized** - Smart compression keeps import URLs short and efficient
-- **Secure** - Login happens on Epic's official website, no credentials stored
-- **Open Source** - Full transparency, audit the code yourself
-
-## 📸 Screenshots
-
-<table>
-  <tr>
-    <td><img src="images/connect.png" alt="Login Panel" width="400"/></td>
-    <td><img src="images/login.png" alt="Login Flow" width="400"/></td>
-  </tr>
-  <tr>
-    <td align="center"><em>Simple one-click import interface</em></td>
-    <td align="center"><em>Secure Epic Games authentication</em></td>
-  </tr>
-  <tr>
-    <td><img src="images/confirmation.png" alt="Confirm Login" width="400"/></td>
-    <td><img src="images/import.png" alt="Import Success" width="400"/></td>
-  </tr>
-  <tr>
-    <td align="center"><em>Confirm Epic Games Login</em></td>
-    <td align="center"><em>Import your locker in seconds</em></td>
-  </tr>
-</table>
+- **One-click import** of your full locker (8000+ items supported): skins, pickaxes, emotes, wraps, banners, instruments, cars, LEGO kits and more
+- **Smart sorting** by type and rarity, exactly how fortnite.gg expects it
+- **Locker comparison**: see how many items are new since your last import
+- **Auto-logout** after import (on by default): your Epic token is cleared automatically
+- **Two languages**: English and German, auto-detected from the fortnite.gg page
+- **Guided tour** for first-time users, restartable anytime in settings
+- **Built-in diagnostics** and a one-click debug report for easy support
+- **Update notifications** when a new version is released
+- **100% free.** If it saved you time, you can support development with Creator Code **REEPZE** (always optional, never automatic)
 
 ## 🚀 Installation
 
-### Easy Method (Recommended)
-1. Install [Tampermonkey](https://www.tampermonkey.net/) or [Violentmonkey](https://violentmonkey.github.io/)
-2. Click here: [Install from Greasyfork](https://greasyfork.org/en/scripts/563780)
-3. Click "Install"
+1. **Install a userscript manager** (one-time setup):
+   - Chrome / Edge / Brave: [Tampermonkey](https://www.tampermonkey.net/)
+   - Firefox: [Tampermonkey](https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/) or [Violentmonkey](https://violentmonkey.github.io/)
+2. **Install the script**: [Click here and press "Install"](https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer)
+3. **Open [fortnite.gg](https://fortnite.gg)** and follow the panel on the right side. Done!
 
-### Manual Method
-1. Install a userscript manager (see above)
-2. Create a new script
-3. Copy the contents of `fngg-locker-importer.user.js`
-4. Save
+> **Chrome users:** If the panel does not appear, open the Tampermonkey extension settings and enable **"Allow User Scripts"** (Chrome requires this since Manifest V3). Then reload the page.
 
-## 📖 How to Use
+> **Note:** This is a desktop tool. It does not work on iPhone, iPad or Android because mobile browsers do not support userscripts properly.
 
-1. Go to [Fortnite.gg](https://fortnite.gg/locker)
-2. Click the  import panel on the right side
-3. Click "Connect Epic Account" and login
-4. Click "Import Locker"
-5. Done! ✅
+## ⚡ How it works
 
-## 🔒 Security
+1. Click **"Connect Epic Account"** in the panel
+2. Login on **Epic's official website** (a new tab opens)
+3. Click **"Import Locker"**
+4. Done! Your locker is on fortnite.gg, sorted and ready to share
 
-Your security is our priority:
+The script reads your locker through the same official Epic API that the game uses, matches every item against the fortnite.gg database, compresses the result and hands it to fortnite.gg's import function.
 
-- ✅ **Open Source** - Every line of code is visible and auditable
-- ✅ **Read-Only Access** - Cannot modify your account or make purchases
-- ✅ **No Data Collection** - Nothing sent to third parties
-- ✅ **Official Login** - Authentication happens on Epic's website
-- ✅ **Temporary Token** - Access expires after ~2 hours
+## 🔐 Is this safe?
 
-### How Login Works
-1. You click "Connect Epic Account"
-2. Epic's official login page opens in a new tab
-3. You login on Epic's website (not through the script)
-4. Epic provides a temporary access token
-5. Script uses token to read your locker (read-only)
+Yes. This was the top priority in every design decision:
 
-**The script never sees your password.**
+| | This script | Typical .exe locker tools |
+|---|---|---|
+| Download required | ❌ None, runs in your browser | ✔️ You run a program on your PC |
+| Source code readable | ✔️ Every line, unobfuscated | ❓ Often compiled or obfuscated |
+| Password handling | ✔️ Never sees it, login happens on epicgames.com | ❓ Varies |
+| Account permissions | ✔️ Reads data only. The single write action: setting the creator code, only with your explicit consent | ❓ Varies |
+| Data collection | ✔️ None, nothing leaves your browser | ❓ Varies |
+| Token lifetime | ✔️ Expires after ~2 hours, auto-logout by default | ❓ Varies |
 
-## 🛠️ Technical Details
+**Don't take our word for it.** Paste the script into any AI and ask it to audit the code. It is a single readable file.
 
-- Fetches locker data from Epic's official API endpoints
-- Uses differential encoding with pako deflateRaw for optimal compression
-- Numeric sorting keeps URLs under 8000 characters for 8500+ items
-- Respects Epic's rate limits and API guidelines
+⚠️ **Only install from the official sources** ([Greasyfork](https://greasyfork.org/en/scripts/563780) or this repository). Copies from anywhere else might be modified to steal accounts.
 
-## ⚠️ Disclaimer
+## ❓ FAQ
 
-This project is **not affiliated with, endorsed by, or connected to**:
-- Epic Games, Inc.
-- Fortnite.gg
+**The panel does not show up.**
+Make sure Tampermonkey is installed and enabled, then reinstall the script from Greasyfork and reload fortnite.gg. On Chrome, enable "Allow User Scripts" in the extension settings.
 
-This is an unofficial, fan-made tool. Use at your own risk.
+**The Epic login page did not open.**
+Your popup blocker probably stopped it. Click the "Login page didn't open? Click here" link in the panel.
 
-## 🐛 Troubleshooting
+**The import button says the compression library is blocked.**
+An adblocker or network filter is blocking `cdnjs.cloudflare.com`. Allow that domain and reload.
 
-**"Session expired" error**
-- Click "Connect Epic Account" again to login
+**Why does the debug console show "backend items skipped"?**
+Your Epic profile contains quest trackers, tokens, banner colors and other non-cosmetic data. These are not lockable items and fortnite.gg does not know them. This is completely normal.
 
-**Items not importing**
-- Make sure you're logged in to Fortnite.gg
-- Try refreshing the page
+**Are shop bundles imported?**
+Bundles do not exist as items in your Epic profile. When you buy a bundle, Epic stores the individual items it contains, and all of those are imported. fortnite.gg recognizes bundle ownership through the contained items.
 
-**Import button not showing**
-- Make sure Tampermonkey/Violentmonkey is enabled
-- Check if the script is active on fortnite.gg
+**Does this work on mobile?**
+No. Mobile browsers do not support userscripts. Use a desktop browser (Chrome, Firefox or Edge).
 
-## 💬 Support
+**Something else is wrong.**
+Open the debug console (🐛 tab on the left), click "Run Diagnostics" and the 📋 button, then paste the report into a [GitHub issue](https://github.com/ItsReepze/fngg-locker-importer/issues). That report contains everything needed to help you.
 
-Found a bug or have a suggestion?
-- Open an [Issue](https://github.com/ItsReepze/fngg-locker-importer/issues)
-- Or reach out on Reddit: u/ItsReepze
+## 🐛 Reporting bugs
 
-## 📜 License
+1. Open the debug console with the 🐛 tab
+2. Click **Run Diagnostics**
+3. Click the **📋 button** to copy the debug report
+4. [Open an issue](https://github.com/ItsReepze/fngg-locker-importer/issues/new?template=bug_report.md) and paste it
 
-All Rights Reserved. This code is provided for transparency and auditing purposes only.
+## 🙏 Thanks for the help
 
----
+- [thororen1234](https://github.com/thororen1234): locker comparison via the LockerItems page variable
 
-Made with ❤️ by [ItsReepze](https://github.com/ItsReepze)
+Contributions are welcome! The codebase is a single readable userscript file.
+
+## ❤️ Support
+
+This tool is and stays free. If it saved you time, you can support development by using Creator Code **REEPZE** in the Fortnite Item Shop. It costs you nothing extra, and you can change or remove the code in-game anytime.
+
+A ⭐ on this repository and a [review on Greasyfork](https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer/feedback) also help a lot.
+
+## 📜 License & Disclaimer
+
+Released under the [MIT License](LICENSE).
+
+This project is not affiliated with, endorsed by, or connected to Epic Games, Inc. or fortnite.gg. It is an unofficial, fan-made tool. Use at your own risk.
