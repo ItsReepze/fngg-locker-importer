@@ -1,24 +1,21 @@
-# Security Policy
+MIT License
 
-## What this script can and cannot do
+Copyright (c) 2026 ItsReepze
 
-- Login happens exclusively on Epic's official website via the official Device Code flow. The script never sees your password.
-- The script only reads data, with one exception: it can set the creator code on your account, and it does that only after you explicitly choose it in the dialog (or via the manual code feature). It cannot make purchases, change account settings or modify your locker on Epic's side.
-- The token expires after roughly 2 hours. With auto-logout enabled (the default), it is cleared immediately after the import.
-- Nothing is sent to third parties. The script only talks to Epic, fortnite.gg, fortnite-api.com (public cosmetics database), greasyfork.org (version check) and cdnjs.cloudflare.com (loads the pako compression library).
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-## Verifying the script yourself
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-The entire tool is a single unobfuscated file. You can read it, or paste it into any AI assistant and ask for a security audit.
-
-## Official sources
-
-Only install from:
-- https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer
-- https://github.com/ItsReepze/fngg-locker-importer
-
-Copies hosted anywhere else may be modified and unsafe.
-
-## Reporting a vulnerability
-
-If you find a security issue, please open a GitHub issue marked [SECURITY] or contact the author via GitHub. Please do not post exploit details publicly before a fix is released.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

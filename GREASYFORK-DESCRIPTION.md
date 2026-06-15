@@ -1,25 +1,60 @@
-# Greasyfork description (copy into the script page)
+# Changelog
 
-Import your entire Fortnite locker to fortnite.gg with ONE click. Free, open source (MIT), no downloads, no .exe, no password sharing.
+## v3.8 (2026-06-15)
+- Fixed: Chrome users hitting a 403 from fortnite.gg now get a clear message explaining the Tampermonkey Developer Mode fix, plus an automatic www fallback that resolves it in many cases (thanks @Venndia for the report)
+- Improved: Diagnostics explains the 403 case directly instead of just showing the error code
 
-🎒 WHAT IT DOES
-Imports all your cosmetics (skins, pickaxes, emotes, wraps, banners, instruments, cars, LEGO kits and more) to your fortnite.gg locker, sorted by type and rarity. Shows you how many items are new since your last import. Works with lockers of 8000+ items.
 
-🔐 IS THIS SAFE?
-Yes. You login on Epic's OFFICIAL website (Device Code flow), the script never sees your password. The script only reads your data (the single write action is setting the creator code, and only if you explicitly choose that). It cannot buy anything. The token expires after ~2 hours and is cleared automatically after the import (default, can be turned off in settings). No data collection. Every line of code is readable. Don't take our word for it: paste the script into any AI and ask it to audit the code.
+## v3.7 (2026-06-11)
+- New: Guided onboarding tour from first visit to finished import, restartable in settings
+- New: Share your locker from the done dialog (X, Reddit, WhatsApp, copy link)
+- New: One-time toast after the script updates to a new version
+- New: Live session countdown with real automatic logout when the token expires
+- New: A little hidden feature for the curious
+- Improved: Skipped-item categories now recognize LEGO quests, banner colors, founders packs and other backend data (thanks to real-world debug reports)
+- Improved: Security texts now state precisely what the script reads and writes
+- Fixed: Header version was out of sync with the script version
+- Fixed: Account data panels reset cleanly on logout
 
-⚡ HOW TO USE
-1. Install this script
-2. Open fortnite.gg and follow the panel on the right
-3. Connect Epic Account, login, click Import Locker. Done!
+## v3.6
+- New: Locker comparison shows how many items are new and how many were already in your fortnite.gg locker (thanks @thororen1234 for the LockerItems idea)
+- New: Done dialog now appears for everyone, including supporters
+- New: Compact dockable debug console with its own edge tab
+- Changed: License switched to MIT, LICENSE file added
+- Removed: All special dash characters from UI texts
 
-A guided tour walks you through your first import. English and German included.
+## v3.5
+- New: Full English and German localization, auto-detected from the fortnite.gg page language
+- New: Settings panel (auto-logout toggle, language, tour restart)
+- New: Built-in diagnostics and copyable debug report
+- New: Update check against Greasyfork (once per day)
+- New: Token lifetime shown in the connected status
+- New: Warning when very few items match (signals that the script may need an update)
 
-📱 NOTE
-Desktop browsers only (Chrome, Firefox, Edge). Mobile browsers do not support userscripts.
+## v3.4
+- New: Update notifications, copy report button, import diff, onboarding hint
+- New: Permanent footer with Creator Code and share link
+- Fixed: "To My Locker" now uses the real locker link from the page menu
 
-🐛 PROBLEMS?
-Open the debug console (bug tab), run diagnostics, copy the report and post it on GitHub: https://github.com/ItsReepze/fngg-locker-importer/issues
+## v3.3
+- New: Panel is visible on all fortnite.gg pages with a "To My Locker" shortcut
+- New: Mobile devices get a clear "Desktop only" notice
+- New: Retry button on every error
+- New: Cosmetics database is cached for 24 hours (much faster repeat imports)
+- Improved: Debug console groups skipped items by category
 
-❤️ SUPPORT
-The tool is 100% free. If it saved you time, you can support development with Creator Code REEPZE in the item shop (optional, never set automatically).
+## v3.2
+- Fixed: Debug panel no longer opens by default for new users
+- Fixed: Login polling now times out cleanly instead of running forever
+- Fixed: Cosmetics cache no longer breaks when the API is down
+- New: Clear error message when the compression library is blocked
+- New: Fallback link when the popup blocker stops the Epic login tab
+
+## v3.1
+- New: Auto-logout after import (default on, user choice is remembered)
+- New: Debug console with import statistics
+- Fixed: Creator code is only set after explicit user consent
+- Improved: General code cleanup and performance
+
+## v3.0
+- Initial public release with numeric sorting and compressed import URLs

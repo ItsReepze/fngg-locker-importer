@@ -1,0 +1,23 @@
+---
+name: Bug report
+about: Something is not working
+title: "[BUG] "
+labels: bug
+---
+
+**What happened?**
+A clear description of the problem.
+
+**Debug report (important!)**
+Open the debug console (bug tab on the left side of fortnite.gg), click "Run Diagnostics", then click the clipboard button and paste everything here:
+
+```
+paste report here
+```
+
+**Steps to reproduce**
+1.
+2.
+
+**Browser & userscript manager**
+e.g. Chrome 149 + Tampermonkey 5.x
