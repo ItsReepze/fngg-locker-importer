@@ -284,5 +284,7 @@
   "wlCleared": "위시리스트에서 {n}개 항목을 제거했습니다.",
   "statsCollectionH": "📦 컬렉션",
   "statsCollectionTotal": "보유: {n}",
-  "shopWishlist": "상점에 위시리스트 {n}개"
+  "shopWishlist": "상점에 위시리스트 {n}개",
+  "epicApiError": "Epic API 오류 ({n})",
+  "copy": "복사"
 }

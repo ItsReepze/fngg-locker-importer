@@ -284,5 +284,7 @@
   "wlCleared": "{n} oggetti rimossi dalla lista dei desideri.",
   "statsCollectionH": "📦 Collezione",
   "statsCollectionTotal": "Posseduti: {n}",
-  "shopWishlist": "{n} oggetti della lista dei desideri nel negozio"
+  "shopWishlist": "{n} oggetti della lista dei desideri nel negozio",
+  "epicApiError": "Errore API Epic ({n})",
+  "copy": "Copia"
 }

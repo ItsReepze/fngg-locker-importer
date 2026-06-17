@@ -284,5 +284,7 @@
   "wlCleared": "ウィッシュリストから {n} 件を削除しました。",
   "statsCollectionH": "📦 コレクション",
   "statsCollectionTotal": "所持: {n}",
-  "shopWishlist": "ショップにウィッシュリストの {n} 件"
+  "shopWishlist": "ショップにウィッシュリストの {n} 件",
+  "epicApiError": "Epic APIエラー ({n})",
+  "copy": "コピー"
 }

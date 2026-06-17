@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.0.1 (2026-06-17)
+- Fixed: a few remaining interface strings (the Epic API error message and the share "Copy" tooltip) are now translated in every language
+
+
 ## v4.0 (2026-06-17): Chapter Update
 The biggest release so far.
 

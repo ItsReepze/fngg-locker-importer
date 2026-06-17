@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fortnite.gg Locker Importer
 // @namespace    https://fortnite.gg/
-// @version      4.0
+// @version      4.0.1
 // @description  Import your Fortnite locker to Fortnite.gg
 // @author       ItsReepze
 // @match        https://fortnite.gg/*
@@ -103,6 +103,7 @@
             shareLocker: 'Share your locker',
             shareText1: 'Check out my Fortnite locker! \ud83c\udf92 {N} items:', shareText2: 'Want to import your locker too? Free, one click:',
             copiedShort: 'Copied!',
+            epicApiError: 'Epic API error ({n})', copy: 'Copy',
             updatedTo: '\u2728 Updated to v',
             restartTour: 'Restart tour',
             tourGo: '\ud83d\udc4b Welcome! This tool imports your Fortnite locker to fortnite.gg. Click "To My Locker" to begin.',
@@ -1523,7 +1524,7 @@
             var sm = document.createElement('div');
             sm.id = 'smodal';
             sm.className = 'fngg-m';
-            sm.innerHTML = '<div class="mbox"><div class="sicon">🎉</div><div class="mtitle">'+t('done')+'</div><div class="stxt2"><span id="icnt"></span>'+t('modalReady')+'<span id="icompare" style="display:none;font-size:12px"></span><span id="sacpitch"><br><br>'+t('modalSupport')+'<br><br><span style="color:#555;font-size:11px;">'+t('modalChange')+'</span></span><span id="sacthanks" style="display:none"><br><br>'+t('thanksSupport')+'</span></div><button class="btn btn-sac" id="ybtn">'+t('useCode')+'</button><button class="btn-skip" id="nbtn">'+t('withoutCode')+'</button><button class="btn btn-g" id="contbtn" style="display:none">'+t('continueBtn')+'</button><div style="margin-top:12px"><div style="font-size:10px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">\ud83d\udce4 '+t('shareLocker')+'</div><div style="display:flex;gap:6px;justify-content:center"><button class="fngg-hbtn shr" data-s="x" style="width:auto;padding:0 12px" title="X / Twitter">\ud835\udd4f</button><button class="fngg-hbtn shr" data-s="reddit" style="width:auto;padding:0 12px">Reddit</button><button class="fngg-hbtn shr" data-s="wa" style="width:auto;padding:0 12px">WhatsApp</button><button class="fngg-hbtn shr" data-s="copy" style="width:auto;padding:0 12px" title="Copy">\ud83d\udccb</button></div></div><div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)"><a href="'+GF_URL+'/feedback" target="_blank" style="font-size:10px;color:#555;text-decoration:none">'+t('review')+'</a></div></div>';
+            sm.innerHTML = '<div class="mbox"><div class="sicon">🎉</div><div class="mtitle">'+t('done')+'</div><div class="stxt2"><span id="icnt"></span>'+t('modalReady')+'<span id="icompare" style="display:none;font-size:12px"></span><span id="sacpitch"><br><br>'+t('modalSupport')+'<br><br><span style="color:#555;font-size:11px;">'+t('modalChange')+'</span></span><span id="sacthanks" style="display:none"><br><br>'+t('thanksSupport')+'</span></div><button class="btn btn-sac" id="ybtn">'+t('useCode')+'</button><button class="btn-skip" id="nbtn">'+t('withoutCode')+'</button><button class="btn btn-g" id="contbtn" style="display:none">'+t('continueBtn')+'</button><div style="margin-top:12px"><div style="font-size:10px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">\ud83d\udce4 '+t('shareLocker')+'</div><div style="display:flex;gap:6px;justify-content:center"><button class="fngg-hbtn shr" data-s="x" style="width:auto;padding:0 12px" title="X / Twitter">\ud835\udd4f</button><button class="fngg-hbtn shr" data-s="reddit" style="width:auto;padding:0 12px">Reddit</button><button class="fngg-hbtn shr" data-s="wa" style="width:auto;padding:0 12px">WhatsApp</button><button class="fngg-hbtn shr" data-s="copy" style="width:auto;padding:0 12px" title="' + t('copy') + '">\ud83d\udccb</button></div></div><div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)"><a href="'+GF_URL+'/feedback" target="_blank" style="font-size:10px;color:#555;text-decoration:none">'+t('review')+'</a></div></div>';
             document.body.appendChild(sm);
         }
 
@@ -2187,7 +2188,7 @@
             }, '{}');
 
             if (ar.status === 401) { working = false; clearSession(); setStatus(t('importLocker')); updateUI(); toast(t('sessionExpired'), 'err'); return; }
-            if (ar.status !== 200) { working = false; setStatus(t('importLocker')); updateUI(); toast('Epic API error (' + ar.status + ')', 'err'); return; }
+            if (ar.status !== 200) { working = false; setStatus(t('importLocker')); updateUI(); toast(t('epicApiError').replace('{n}', ar.status), 'err'); return; }
 
             var ap = ar.data && ar.data.profileChanges && ar.data.profileChanges[0] ? ar.data.profileChanges[0].profile : null;
             var ai = (ap && ap.items) || {};

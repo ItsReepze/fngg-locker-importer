@@ -5,7 +5,7 @@
 **Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with one click.**
 
 [![Install](https://img.shields.io/badge/Install-Greasyfork-670000?style=for-the-badge)](https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer)
-[![Version](https://img.shields.io/badge/Version-4.0-f0db4f?style=for-the-badge)](https://github.com/ItsReepze/fngg-locker-importer/releases)
+[![Version](https://img.shields.io/badge/Version-4.0.1-f0db4f?style=for-the-badge)](https://github.com/ItsReepze/fngg-locker-importer/releases)
 [![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
 
 No downloads. No .exe files. No password sharing. Runs entirely in your browser.

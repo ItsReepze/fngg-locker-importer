@@ -284,5 +284,7 @@
   "wlCleared": "{n} Items von deiner Wunschliste entfernt.",
   "statsCollectionH": "📦 Sammlung",
   "statsCollectionTotal": "Besessen: {n}",
-  "shopWishlist": "{n} Wunschlisten-Items im Shop"
+  "shopWishlist": "{n} Wunschlisten-Items im Shop",
+  "epicApiError": "Epic API-Fehler ({n})",
+  "copy": "Kopieren"
 }

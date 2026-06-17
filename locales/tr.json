@@ -284,5 +284,7 @@
   "wlCleared": "İstek listenden {n} öğe kaldırıldı.",
   "statsCollectionH": "📦 Koleksiyon",
   "statsCollectionTotal": "Sahip olunan: {n}",
-  "shopWishlist": "Mağazada {n} istek listesi öğesi"
+  "shopWishlist": "Mağazada {n} istek listesi öğesi",
+  "epicApiError": "Epic API hatası ({n})",
+  "copy": "Kopyala"
 }

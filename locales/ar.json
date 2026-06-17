@@ -284,5 +284,7 @@
   "wlCleared": "تمت إزالة {n} عنصرًا من قائمة الرغبات.",
   "statsCollectionH": "📦 المجموعة",
   "statsCollectionTotal": "المملوكة: {n}",
-  "shopWishlist": "{n} عنصر من قائمة الرغبات في المتجر"
+  "shopWishlist": "{n} عنصر من قائمة الرغبات في المتجر",
+  "epicApiError": "خطأ في واجهة Epic ({n})",
+  "copy": "نسخ"
 }

@@ -284,5 +284,7 @@
   "wlCleared": "Удалено предметов из списка желаний: {n}.",
   "statsCollectionH": "📦 Коллекция",
   "statsCollectionTotal": "В наличии: {n}",
-  "shopWishlist": "{n} предметов списка желаний в магазине"
+  "shopWishlist": "{n} предметов списка желаний в магазине",
+  "epicApiError": "Ошибка API Epic ({n})",
+  "copy": "Копировать"
 }
