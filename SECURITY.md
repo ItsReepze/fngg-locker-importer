@@ -4,8 +4,9 @@
 
 - Login happens exclusively on Epic's official website via the official Device Code flow. The script never sees your password.
 - The script only reads data, with one exception: it can set the creator code on your account, and it does that only after you explicitly choose it in the dialog (or via the manual code feature). It cannot make purchases, change account settings or modify your locker on Epic's side.
+- On your fortnite.gg account the script writes the items you import to your locker, and, only when you press the “clear owned” button, removes items you already own from your fortnite.gg wishlist. Both are actions you trigger yourself.
 - The token expires after roughly 2 hours. With auto-logout enabled (the default), it is cleared immediately after the import.
-- Nothing is sent to third parties. The script only talks to Epic, fortnite.gg, fortnite-api.com (public cosmetics database), greasyfork.org (version check) and cdnjs.cloudflare.com (loads the pako compression library).
+- Nothing is sent to third parties. The script only talks to Epic, fortnite.gg, fortnite-api.com (public cosmetics database), greasyfork.org (version check), cdnjs.cloudflare.com (loads the pako compression library) and raw.githubusercontent.com (downloads the optional UI translation files from this repository, no data is sent).
 
 ## Verifying the script yourself
 

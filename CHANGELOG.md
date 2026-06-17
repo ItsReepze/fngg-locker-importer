@@ -1,5 +1,30 @@
 # Changelog
 
+## v4.0 (2026-06-17): Chapter Update
+The biggest release so far.
+
+### New
+- Account stats panel: V-Bucks, lifetime wins, account level, season history, purchases, gifts, Save the World and Creative info, in its own tab
+- Collection breakdown: your owned cosmetics counted by rarity and type
+- Selective import filter: pick which cosmetic types, rarities and series get imported
+- Filter presets: save fortnite.gg filter views and reapply them in one click; shared across Cosmetics, Locker, Most Used and Wishlist; export and import to back up or share; saved in your browser so they survive script updates
+- Clickable chapter filter: click a chapter title on the season filter to toggle all of its seasons
+- Background locker check: optional notification when you own new items since your last import (configurable threshold and interval)
+- Wishlist tools: see how many wishlisted items you already own (with a clickable list), clear the owned ones in one click, owned items glow on your wishlist page, and a shop alert when one of your wishlisted items is in the item shop
+- 13 languages, auto-detected from the fortnite.gg page (was English and German)
+
+### Improved
+- Major UI restructure: compact Info modal, Account Stats and Debug as their own edge tabs, cleaner settings
+- More robust networking: per-request timeouts, automatic quiet retries on transient errors, and Epic rate-limit handling during login
+- Cosmetics database caching no longer forces a full refetch on every release
+
+### Fixed
+- Background check no longer resurfaces the "new items" notice right after an import
+- Stats panel no longer reloads twice or overwrites the import button while busy
+- Login no longer keeps polling after a fatal error
+- Various smaller correctness and translation fixes
+
+
 ## v3.8 (2026-06-15)
 - Fixed: Chrome users hitting a 403 from fortnite.gg now get a clear message explaining the Tampermonkey Developer Mode fix, plus an automatic www fallback that resolves it in many cases (thanks @Venndia for the report)
 - Improved: Diagnostics explains the 403 case directly instead of just showing the error code

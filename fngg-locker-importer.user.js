@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fortnite.gg Locker Importer
 // @namespace    https://fortnite.gg/
-// @version      3.8
+// @version      4.0
 // @description  Import your Fortnite locker to Fortnite.gg
 // @author       ItsReepze
 // @match        https://fortnite.gg/*
@@ -19,50 +19,34 @@
 // @connect      fortnite.gg
 // @connect      www.fortnite.gg
 // @connect      greasyfork.org
+// @connect      raw.githubusercontent.com
 // @require      https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js
 // @updateURL    https://greasyfork.org/scripts/563780/code/script.meta.js
 // @downloadURL  https://greasyfork.org/scripts/563780/code/script.user.js
 // @license      MIT
 // ==/UserScript==
 
-/**
- * DISCLAIMER
- * This project is not affiliated with, endorsed by, or connected to Epic Games, Inc. or fortnite.gg.
- * This is an unofficial, fan-made tool. Use at your own risk.
- *
- * SECURITY
- * - Open source (MIT): Every line of this script is unobfuscated and can be reviewed
- * - No password storage: Login happens on Epic's official website
- * - Reads your data only. The single write action is setting the creator code, and only after you explicitly choose it in the dialog
- * - No data collection: Nothing sent to third parties
- * - Token expires after ~2 hours
- *
- * IMPORTANT: Only use this script from official sources!
- * - GitHub: https://github.com/ItsReepze/fngg-locker-importer
- * - Greasyfork: https://greasyfork.org/en/scripts/563780
- * If you got this from anywhere else, it might be a fake designed to steal your account.
- *
- * CREDITS
- * - thororen1234 (https://github.com/thororen1234): locker comparison via LockerItems
- */
 
 (function() {
     'use strict';
 
-    /* ================= CONFIG ================= */
     var SAC = 'Reepze';
     var VERSION = '3.8';
     var GF_URL = 'https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer';
-    var SESSION_TIMEOUT = 7200000;        // Epic token lifetime (~2h)
-    var POLL_INTERVAL = 3000;             // login polling rate
-    var AUTO_LOGOUT_DELAY = 2000;         // delay before auto-logout after import
-    var COSMETICS_CACHE_TTL = 86400000;   // cosmetics DB cache (24h)
-    var UPDATE_CHECK_INTERVAL = 86400000; // greasyfork version check (24h)
-    /* =========================================== */
-
-    var CONTRIBUTORS = [
-        { name: 'thororen1234', url: 'https://github.com/thororen1234' }
-    ];
+    var SESSION_TIMEOUT = 7200000;
+    var POLL_INTERVAL = 3000;
+    var REQUEST_TIMEOUT = 20000;
+    var HTTP_RETRIES = 2;
+    var AUTO_LOGOUT_DELAY = 2000;
+    var COSMETICS_CACHE_TTL = 86400000;
+    var COSMETICS_SCHEMA_VERSION = '1';
+    var UPDATE_CHECK_INTERVAL = 86400000;
+    var LOCALES_BASE = 'https://raw.githubusercontent.com/ItsReepze/fngg-locker-importer/main/locales/';
+    var LOCALES_CACHE_TTL = 604800000;
+    var LOCALE_TIMEOUT = 7000;
+    var AVAILABLE_LANGS = ['en', 'ar', 'de', 'es', 'es-419', 'fr', 'it', 'ja', 'ko', 'pl', 'pt-BR', 'ru', 'tr'];
+    var LANG_NAMES = { en: 'English', ar: 'العربية', de: 'Deutsch', es: 'Español', 'es-419': 'Español (LA)', fr: 'Français', it: 'Italiano', ja: '日本語', ko: '한국어', pl: 'Polski', 'pt-BR': 'Português (BR)', ru: 'Русский', tr: 'Türkçe' };
+    var INLINE_LANGS = ['en'];
 
     var IS_LOCKER = location.pathname.toLowerCase().indexOf('/locker') !== -1;
     var IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -70,7 +54,7 @@
     var I18N = {
         en: {
             importLocker: 'Import Locker', connect: 'Connect Epic Account', cancel: 'Cancel', logout: 'Logout',
-            notConnected: 'Not Connected', linkAccount: 'Link your account', connected: 'Connected',
+            notConnected: 'Not Connected', linkAccount: 'Link your account', connected: 'Connected', greeting: 'Hey {name}!',
             waitingLogin: 'Waiting for login...', completeLogin: 'Complete login in browser',
             loginDidntOpen: 'Login page didn\u2019t open? Click here',
             loading: 'Loading...', checkingSession: 'Checking session',
@@ -91,7 +75,7 @@
             importFailed: 'Import failed, please try again',
             codeCopied: 'Code copied! \u2764\ufe0f', linkCopied: 'Install link copied, thanks for sharing! \u2764\ufe0f',
             couldntCopy: 'Couldn\u2019t copy', reportCopied: 'Report copied!', thanksHeart: 'Thanks! \u2764\ufe0f', couldntSetCode: 'Couldn\u2019t set code',
-            settings: 'Settings', autoLogoutLbl: 'Auto-logout after import', autoLogoutDesc: 'Clears your Epic token once the import is done (recommended)',
+            settings: 'Settings', settingsGeneral: 'General', autoLogoutLbl: 'Auto-logout after import', autoLogoutDesc: 'Clears your Epic token once the import is done (recommended)',
             languageLbl: 'Language', langAuto: 'Auto', close: 'Close',
             tokenLeft: 'left',
             modalReady: ' items are ready to import.',
@@ -126,78 +110,102 @@
             tour1: 'Step 2: Login on Epic\u2019s website in the new tab, then come back here.',
             tour2: 'Step 3: Connected! Now click "Import Locker" and lean back.',
             tour3: '\ud83c\udf89 That\u2019s it! Your locker is now on fortnite.gg. Enjoy!',
-            tourSkip: 'Skip tour'
-        },
-        de: {
-            importLocker: 'Locker importieren', connect: 'Epic-Konto verbinden', cancel: 'Abbrechen', logout: 'Abmelden',
-            notConnected: 'Nicht verbunden', linkAccount: 'Verbinde dein Konto', connected: 'Verbunden',
-            waitingLogin: 'Warte auf Login...', completeLogin: 'Login im Browser abschlie\u00dfen',
-            loginDidntOpen: 'Login-Seite nicht ge\u00f6ffnet? Hier klicken',
-            loading: 'Lade...', checkingSession: 'Pr\u00fcfe Sitzung',
-            toMyLocker: 'Zu meinem Locker', openLocker: '\u00d6ffne deinen Locker zum Starten', lockerImporter: 'Locker Importer',
-            desktopOnly: 'Nur Desktop', notSupportedMobile: 'Auf Mobilger\u00e4ten nicht verf\u00fcgbar',
-            mobileDesc: 'Dieses Tool ben\u00f6tigt einen Desktop-Browser (Chrome, Firefox oder Edge) mit der Tampermonkey-Erweiterung.',
-            freeTool: 'Kostenloses Tool', creatorCode: 'Creator Code', share: '\ud83d\udce4 Teilen',
-            copyCode: 'Klicken zum Kopieren', copyLink: 'Install-Link kopieren',
-            tryAgain: 'Erneut versuchen', connecting: 'Verbinde...', processing: 'Verarbeite...', sorting: 'Sortiere...',
-            loadingCosmetics: 'Lade Cosmetics', loadingLocker: 'Lade Locker...', loadingBanners: 'Lade Banner...',
-            gettingItems: 'Hole fortnite.gg Items...', checkingFngg: 'Pr\u00fcfe fortnite.gg Login...', building: 'Erstelle Import-Daten...',
-            done: 'Fertig!', itemsImported: ' Items importiert', newSuffix: ' neu',
-            loggedOut: 'Abgemeldet', autoLoggedOut: 'Automatisch abgemeldet',
-            sessionExpired: 'Sitzung abgelaufen, bitte neu verbinden', loginExpired: 'Login abgelaufen, bitte erneut versuchen',
-            epicFail: 'Verbindung zu Epic fehlgeschlagen', fnggLoginFirst: 'Bitte zuerst bei fortnite.gg einloggen!',
-            fnggUnreachable: 'fortnite.gg nicht erreichbar', fnggBlocked: 'fortnite.gg hat die Anfrage blockiert (403). Aktiviere unter Chrome den Developer Mode in Tampermonkey, oder nutze Firefox. Siehe GitHub README.', noItems: 'Keine Items gefunden',
-            lockerTooLarge: 'Locker zu gro\u00df', pakoBlocked: 'Kompressions-Bibliothek blockiert. Erlaube cdnjs.cloudflare.com und lade neu.',
-            importFailed: 'Import fehlgeschlagen, bitte erneut versuchen',
-            codeCopied: 'Code kopiert! \u2764\ufe0f', linkCopied: 'Install-Link kopiert, danke f\u00fcrs Teilen! \u2764\ufe0f',
-            couldntCopy: 'Kopieren fehlgeschlagen', reportCopied: 'Report kopiert!', thanksHeart: 'Danke! \u2764\ufe0f', couldntSetCode: 'Code konnte nicht gesetzt werden',
-            settings: 'Einstellungen', autoLogoutLbl: 'Auto-Logout nach Import', autoLogoutDesc: 'L\u00f6scht deinen Epic-Token nach dem Import (empfohlen)',
-            languageLbl: 'Sprache', langAuto: 'Auto', close: 'Schlie\u00dfen',
-            tokenLeft: '\u00fcbrig',
-            modalReady: ' Items sind bereit zum Import.',
-            modalSupport: 'Dieses Tool ist 100% kostenlos. Wenn es dir Zeit gespart hat, kannst du die Entwicklung mit Creator Code <strong>{SAC}</strong> unterst\u00fctzen. Es kostet dich keinen Cent extra.',
-            modalChange: 'Du kannst den Code im Spiel jederzeit \u00e4ndern oder entfernen.',
-            useCode: '\u2764\ufe0f Mit Code importieren', withoutCode: 'Ohne Code importieren',
-            review: 'Gef\u00e4llt dir das Tool? Eine kurze Bewertung auf Greasyfork hilft sehr \u2b50',
-            updateAvail: '\u2b06 Update', updateTitle: 'Eine neue Version ist verf\u00fcgbar',
-            warnFewMatches: 'Warnung: Sehr wenige Items zugeordnet. Das Script braucht evtl. ein Update. Check Greasyfork!',
-            infoWhatH: '\ud83c\udfaf Was macht das?',
-            infoWhat: 'Importiert deinen gesamten Fortnite-Locker mit einem Klick zu fortnite.gg. Alle Cosmetics (Skins, Spitzhacken, Emotes usw.) werden automatisch nach Typ und Seltenheit sortiert.',
-            infoSafeH: '\ud83d\udd10 Ist das sicher?',
-            infoSafe: '100% sicher! Nutzt Epics offizielle Device-Code-Anmeldung. Dein Passwort ber\u00fchrt dieses Script nie. Du loggst dich direkt auf Epics Website ein.<br><span style="color:#888">Glaub uns nicht einfach: Kopiere das Script in eine beliebige KI und lass den Code pr\u00fcfen.</span>',
-            infoHowH: '\u26a1 So funktioniert\u2019s',
-            infoHow: '1. Klicke auf "Epic-Konto verbinden"<br>2. Logge dich auf Epics Website ein<br>3. Klicke auf "Locker importieren"<br>4. Fertig! Dein Locker ist aktuell.',
-            infoTokenH: '\ud83d\udd11 Token-Info',
-            infoToken: 'Der Zugriffs-Token l\u00e4uft nach ~2 Stunden ab. Danach einfach neu verbinden. Wir speichern niemals dein Passwort.',
-            infoSupportH: '\u2764\ufe0f Unterst\u00fctze mich',
-            infoSupport: 'Wenn dir das Tool gef\u00e4llt, nutze Creator Code <strong style="color:#f0db4f">{SAC}</strong> im Fortnite Item Shop!',
-            thanksH: '\ud83d\ude4f Danke f\u00fcr die Hilfe',
-            alreadyInLocker: 'bereits im Locker',
-            totalWord: 'gesamt', addedWord: 'neu',
-            continueBtn: 'Weiter',
-            thanksSupport: 'Danke, dass du mit Creator Code <strong>{SAC}</strong> unterst\u00fctzt! \u2764\ufe0f',
-            shareLocker: 'Teile deinen Locker',
-            shareText1: 'Schaut euch meinen Fortnite Locker an! \ud83c\udf92 {N} Items:', shareText2: 'Willst du deinen Locker auch importieren? Kostenlos, ein Klick:',
-            copiedShort: 'Kopiert!',
-            updatedTo: '\u2728 Aktualisiert auf v',
-            restartTour: 'Tour neu starten',
-            tourGo: '\ud83d\udc4b Willkommen! Dieses Tool importiert deinen Fortnite-Locker zu fortnite.gg. Klicke auf "Zu meinem Locker" um zu starten.',
-            tour0: '\ud83d\udc4b Willkommen! Dieses Panel importiert deinen Fortnite-Locker zu fortnite.gg. Schritt 1: Klicke auf "Epic-Konto verbinden".',
-            tour1: 'Schritt 2: Logge dich im neuen Tab auf Epics Website ein und komm dann hierher zur\u00fcck.',
-            tour2: 'Schritt 3: Verbunden! Klicke jetzt auf "Locker importieren" und lehn dich zur\u00fcck.',
-            tour3: '\ud83c\udf89 Das war\u2019s! Dein Locker ist jetzt auf fortnite.gg. Viel Spa\u00df!',
-            tourSkip: 'Tour \u00fcberspringen'
+            tourSkip: 'Skip tour',
+            chapterToggleHint: 'Click to select all seasons of this chapter',
+            bgCheckLbl: 'Background locker check',
+            bgCheckDesc: 'Check for new locker items while this page is open',
+            bgThresholdLbl: 'Notify me at this many new items',
+            newSinceImport: 'new since last import',
+            bgIntervalLbl: 'Check every (minutes)',
+            filterImportLbl: 'Import filter', filterImportDesc: 'Only import the selected types and rarities', importFilterActive: 'Import filter active',
+            catOutfit: 'Outfits', catBackpack: 'Back Bling', catPickaxe: 'Pickaxes', catGlider: 'Gliders', catEmote: 'Emotes', catWrap: 'Wraps', catBanner: 'Banners', catMusic: 'Music', catCar: 'Cars', catLego: 'LEGO', catOther: 'Other',
+            rarCommon: 'Common', rarUncommon: 'Uncommon', rarRare: 'Rare', rarEpic: 'Epic', rarLegendary: 'Legendary', rarSpecial: 'Special', rarMythic: 'Mythic',
+            filterCosmeticsLbl: 'Cosmetics', filterRarityLbl: 'Rarity', filterSpecialLbl: 'Special',
+            presetsTitle: 'Filter presets', presetsDesc: 'Save your fortnite.gg cosmetic filters and reapply them with one click.',
+            presetsSaveBtn: 'Save', presetsNamePrompt: 'Preset name…', presetsEmpty: 'No presets saved yet.',
+            presetsClear: 'Clear all filters', presetsNoFilters: 'no filters',
+            presetsDelete: 'Delete', presetsSaved: 'Preset “{name}” saved.',
+            presetsDeleted: 'Preset deleted.', presetsOverwrite: 'Overwrite preset “{name}”?',
+            presetsExport: 'Export', presetsImport: 'Import', presetsExported: 'Presets copied to clipboard.', presetsImportPrompt: 'Paste exported presets here:', presetsImported: '{n} presets imported.', presetsImportFail: 'Invalid preset data.',
+            statsWishlistH: '🎯 Wishlist', statsWishlistOwned: 'You own {x} of {y} wishlisted items',
+            wlClear: 'Clear owned ({n})', wlClearConfirm: 'Remove {n} owned items from your wishlist?', wlCleared: 'Removed {n} items from your wishlist.',
+            statsCollectionH: '📦 Collection', statsCollectionTotal: 'Owned: {n}', shopWishlist: '{n} wishlist items in the shop',
+            impItems: '{n} items imported', impNew: '+{n} new', impAlready: '{n} already in locker', impProcessed: 'Total processed',
+            impSkipped: '{n} backend items skipped', impQuests: 'Quests & challenges', impVehicles: 'Vehicles', impSystem: 'System & tokens',
+            impUnrecognized: 'Unrecognized', impDuplicates: 'Duplicates', impInvalid: 'Invalid', impNothingUnrec: 'Nothing unrecognized. All skipped items are normal backend data.',
+            loginFailed: 'Login failed, please try again',
+            catContrail: 'Contrails', catEmoji: 'Emoticons', catSpray: 'Sprays', catLoadingscreen: 'Loading Screens', catJamtrack: 'Jam Tracks', catInstrument: 'Instruments', catToy: 'Toys', catCompanion: 'Pets', catShoe: 'Kicks', catAura: 'Auras',
+            panelTitle: 'Locker Import', statsTitle: 'Account Stats', debugTitle: 'Debug Console', infoTitle: 'Info',
+            debugCopyReport: 'Copy report to clipboard', debugLastImport: '📊 Last Import', debugNoImport: 'No import data yet. Run an import to see statistics.',
+            debugDiagnostics: '🔧 Diagnostics', debugRunDiag: 'Run Diagnostics', debugUnrecognized: '❓ Unrecognized Items',
+            debugUnrecDesc: 'Skipped backend data (quests, tokens, schedules, vehicle parts) is summarized above. That’s normal. Anything listed below couldn’t be categorized and might be worth reporting.',
+            debugNoData: 'No data yet.', debugRunning: 'Running...',
+            diagPako: 'Compression library loaded', diagPakoBlocked: 'pako blocked, allow cdnjs.cloudflare.com',
+            diagFnggLogin: 'Logged in to fortnite.gg', diagFnggNoLogin: 'Not logged in to fortnite.gg',
+            diagEpicConn: 'Epic account connected', diagEpicNoConn: 'Epic account not connected', diagChecking: 'Checking APIs...',
+            diagFnggOk: 'fortnite.gg API reachable', diagFnggBlocked: 'fortnite.gg API blocked (403). On Chrome, enable Tampermonkey Developer Mode or use Firefox.',
+            diagFnggErr: 'fortnite.gg API error', diagFnggUnreach: 'fortnite.gg API unreachable',
+            diagApiOk: 'fortnite-api.com reachable', diagApiErr: 'fortnite-api.com error', diagApiUnreach: 'fortnite-api.com unreachable',
+            diagEpicOk: 'Epic API reachable', diagEpicErr: 'Epic API error', diagEpicUnreach: 'Epic API unreachable',
+            ccTitle: '🔧 Set Creator Code', ccDesc: 'Dev tool. Sets any creator code on your account via Epic’s API. Leave empty to remove the current code.',
+            ccPlaceholder: 'Creator code...', ccApply: 'Apply', ccChecking: 'Checking code...', ccRemoving: 'Removing code...',
+            ccActive: '✓ Code "{code}" is now active.', ccRemoved: '✓ Code removed.', ccFailed: '✗ Code does not exist or could not be set.',
+            statsClickLoad: 'Click your name to load.',
+            statsLoadingAccount: 'Loading account data...', statsErrProfile: 'Could not load profile ({n}).', statsErrRead: 'Could not read profile.',
+            statsLoadingBR: 'Loading battle royale stats...', statsLoadingItems: 'Loading item names...', statsUnknownItem: 'Unknown item',
+            statsFullStats: '📊 Full stats on fortnite.gg',
+            statsVbucks: 'V-Bucks', statsLifetimeWins: 'Lifetime Wins', statsAccountLevel: 'Account Level', statsVbucksSpent: 'V-Bucks spent',
+            statsAccount: '👤 Account', statsName: 'Name', statsId: 'ID', statsClickCopy: 'Click to copy', statsCountry: 'Country', statsCreated: 'Created',
+            statsNameChanges: 'Name changes', statsLast: 'last', statsEnabled: 'enabled', statsDisabled: 'disabled', statsBanStatus: 'Ban status', statsBanned: 'BANNED', statsClean: 'Clean', statsLinked: 'Linked', statsNoLinked: 'No linked platforms',
+            statsVbucksH: '💰 V-Bucks', statsBalance: 'Balance', statsPurchased: 'Purchased', statsFree: 'Free',
+            statsSeason: 'Season', statsLevel: 'Level', statsBP: 'BP', statsFreePass: 'free pass', statsNoData: 'No data', statsBR: '⚔️ Battle Royale', statsSeasonsPlayed: 'Seasons played', statsBattlePasses: 'Battle passes',
+            statsSeasonHistory: '📜 Season History', statsLvl: 'Lvl', statsWins: 'wins', statsMore: 'more',
+            statsPurchasesH: '🛒 Purchases', statsItemShopPurch: 'Item shop purchases', statsTracked: 'tracked', statsPacksOwned: 'Packs owned', statsRefundsUsed: 'Refunds used', statsTicketsLeft: 'Tickets left',
+            statsRecentPurch: '🕒 Recent Purchases',
+            statsGifts: '🎁 Gifts', statsSent: 'Sent', statsReceived: 'Received', statsReceivingDisabled: 'Receiving disabled',
+            statsSTW: '🏗️ Save the World', statsOwned: 'Owned', statsFoundersPack: 'Founder’s Pack', statsCommanderLevel: 'Commander level', statsResearchPower: 'Research power', statsCollectionBook: 'Collection book', statsNotOwned: 'Not owned',
+            statsCreative: '🎨 Creative', statsOwnIslands: 'Own islands',
+            statsCreatorCodeH: '⭐ Creator Code', statsThankYou: '❤️ Thank you for the support!', statsSupportPitch: 'Enjoying this tool? Code {code} supports development ❤️', statsNoneSet: 'None set.',
+            statsFootnote: '* Epic only keeps a partial purchase history in the profile. Real totals can be higher. Console purchases and ban history are not exposed by this API, only the current ban status.',
+            statsErrLoad: 'Could not load account data.'
         }
     };
+
+    function normLang(raw) {
+        if (!raw) {return null;}
+        var lower = String(raw).trim().toLowerCase();
+        for (var i = 0; i < AVAILABLE_LANGS.length; i++) {
+            if (AVAILABLE_LANGS[i].toLowerCase() === lower) {return AVAILABLE_LANGS[i];}
+        }
+        if (lower === 'es-419' || lower === 'es-la' || lower === 'es-mx' || lower === 'es-ar' || lower === 'es-co' || lower === 'es-cl' || lower === 'es-pe' || lower === 'es-ve') {return 'es-419';}
+        if (lower.indexOf('pt') === 0) {return 'pt-BR';}
+        if (lower.indexOf('es') === 0) {return 'es';}
+        var pre = lower.split('-')[0];
+        for (var j = 0; j < AVAILABLE_LANGS.length; j++) {
+            if (AVAILABLE_LANGS[j].toLowerCase() === pre) {return AVAILABLE_LANGS[j];}
+        }
+        return null;
+    }
 
     var LANG = (function() {
         try {
             var saved = JSON.parse(GM_getValue('fngg_settings', '{}')).lang;
-            if (saved === 'en' || saved === 'de') return saved;
+            if (saved && AVAILABLE_LANGS.indexOf(saved) !== -1) {return saved;}
         } catch(e) {}
-        var l = (document.documentElement.lang || navigator.language || 'en').toLowerCase();
-        return l.indexOf('de') === 0 ? 'de' : 'en';
+        return normLang(document.documentElement.lang) || normLang(navigator.language) || 'en';
     })();
+
+    var IS_RTL = (LANG === 'ar');
+
+    function langOptions() {
+        var cur = getSettings().lang || 'auto';
+        var html = '<option value="auto"' + (cur === 'auto' ? ' selected' : '') + '>' + esc(t('langAuto') + ' (' + (LANG_NAMES[LANG] || LANG) + ')') + '</option>';
+        for (var i = 0; i < AVAILABLE_LANGS.length; i++) {
+            var code = AVAILABLE_LANGS[i];
+            html += '<option value="' + code + '"' + (cur === code ? ' selected' : '') + '>' + esc(LANG_NAMES[code] || code) + '</option>';
+        }
+        return html;
+    }
 
     function t(k) {
         var s = (I18N[LANG] && I18N[LANG][k]) || I18N.en[k] || k;
@@ -229,7 +237,7 @@
         keyboard: 'keytar', sparks_microphone: 'microphone', mic: 'microphone', sparks_aura: 'aura', instrument: 'guitar',
         track: 'jamtrack', 'jam track': 'jamtrack', sparks_song: 'jamtrack',
         body: 'car', vehiclebody: 'car', skin: 'decal', vehicleskin: 'decal', wheels: 'wheel', vehiclewheels: 'wheel',
-        booster: 'boost', vehicleboost: 'boost', drifttrail: 'trail', vehiclebooster: 'trail',
+        booster: 'boost', vehicleboost: 'boost', drifttrail: 'trail',
         legoset: 'legokit', legoprop: 'legokit', legobuild: 'legokit', lego: 'legokit', build: 'legokit',
         juno_build: 'legokit', junobuild: 'legokit', decor: 'legokit', juno_decor: 'legokit', junodecor: 'legokit', legodecor: 'legokit'
     };
@@ -256,6 +264,7 @@
     var deviceCode = null;
     var verifyUri = null;
     var pollInterval = null;
+    var currentPollInterval = POLL_INTERVAL;
     var loginExpires = 0;
     var sessionChecking = false;
     var cosmeticsData = null;
@@ -277,20 +286,21 @@
     function loadSession() {
         try {
             var d = JSON.parse(GM_getValue('epic_session'));
-            if (!d || Date.now() - d.ts > SESSION_TIMEOUT) return null;
+            if (!d || Date.now() - d.ts > SESSION_TIMEOUT) {return null;}
             return { accessToken: d.token, accountId: d.id, displayName: d.name, ts: d.ts };
         } catch(e) { return null; }
     }
     function clearSession() {
         GM_deleteValue('epic_session');
         session = null;
+        bgNewCount = 0;
         statsLoaded = false;
         var sb = $('fngg-stats-body');
-        if (sb) sb.textContent = 'Click your name to load.';
+        if (sb) {sb.textContent = t('statsClickLoad');}
         var spx = $('fngg-stats');
-        if (spx && spx.classList.contains('show')) openSide(null);
+        if (spx && spx.classList.contains('show')) {toggleStats(false);}
     }
-    
+
     function $(id) { return document.getElementById(id); }
 
     function esc(s) {
@@ -300,50 +310,231 @@
     }
 
     async function fetchFnggItems() {
-        var r = await http('GET', 'https://fortnite.gg/api/items.json');
+        var r = await httpRetry('GET', 'https://fortnite.gg/api/items.json');
         if (r.status === 403) {
             try {
-                var r2 = await http('GET', 'https://www.fortnite.gg/api/items.json');
-                if (r2.status === 200) return r2;
+                var r2 = await httpRetry('GET', 'https://www.fortnite.gg/api/items.json');
+                if (r2.status === 200) {return r2;}
             } catch(e) {}
         }
         return r;
     }
 
-    function http(method, url, headers, body) {
+    function http(method, url, headers, body, timeoutMs) {
         return new Promise(function(res, rej) {
             GM_xmlhttpRequest({
                 method: method, url: url, headers: headers || {}, data: body,
+                timeout: timeoutMs || REQUEST_TIMEOUT,
                 onload: function(r) {
                     try { res({ status: r.status, data: JSON.parse(r.responseText) }); }
                     catch(e) { res({ status: r.status, data: r.responseText }); }
                 },
-                onerror: rej
+                onerror: function() { rej(new Error('network')); },
+                ontimeout: function() { rej(new Error('timeout')); }
             });
         });
     }
 
+    function delay(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+    async function httpRetry(method, url, headers, body, retries) {
+        var maxTries = (retries === undefined ? HTTP_RETRIES : retries) + 1;
+        for (var i = 1; i <= maxTries; i++) {
+            try {
+                var r = await http(method, url, headers, body);
+                if ((r.status >= 500 || r.status === 429) && i < maxTries) {
+                    await delay(600 * i);
+                    continue;
+                }
+                return r;
+            } catch (e) {
+                if (i >= maxTries) {throw e;}
+                await delay(600 * i);
+            }
+        }
+        throw new Error('network');
+    }
+
+    function fetchLocale(lang) { return http('GET', LOCALES_BASE + lang + '.json', {}, null, LOCALE_TIMEOUT); }
+
+    function storeLocale(lang, data) {
+        I18N[lang] = data;
+        try { GM_setValue('locale_' + lang, JSON.stringify({ ts: Date.now(), data: data })); } catch(e) {}
+    }
+
+    function bgRefreshLocale(lang) {
+        fetchLocale(lang).then(function(r) {
+            if (r.status === 200 && r.data && typeof r.data === 'object') {storeLocale(lang, r.data);}
+        }).catch(function() {});
+    }
+
+    async function ensureLocale(lang) {
+        if (INLINE_LANGS.indexOf(lang) !== -1 || I18N[lang]) {return;}
+        var c = null;
+        try { c = JSON.parse(GM_getValue('locale_' + lang, 'null')); } catch(e) {}
+        if (c && c.data && typeof c.data === 'object') {
+            I18N[lang] = c.data;
+            if (!c.ts || Date.now() - c.ts > LOCALES_CACHE_TTL) {bgRefreshLocale(lang);}
+            return;
+        }
+        try {
+            var r = await fetchLocale(lang);
+            if (r.status === 200 && r.data && typeof r.data === 'object') {storeLocale(lang, r.data);}
+        } catch(e) {}
+    }
+
+    function toggleChapter(inner, chapter) {
+        var sel = '.filter-select-btn[data-key="season"][data-chapter="' + chapter + '"]';
+        var btns = [].slice.call(inner.querySelectorAll(sel));
+        if (!btns.length) {return;}
+        var allActive = btns.every(function(b) { return b.classList.contains('active'); });
+        var vals = btns.filter(function(b) {
+            var a = b.classList.contains('active');
+            return allActive ? a : !a;
+        }).map(function(b) { return b.getAttribute('data-val'); });
+        vals.forEach(function(v) {
+            var b = inner.querySelector(sel + '[data-val="' + v + '"]');
+            if (b) {b.click();}
+        });
+    }
+
+    function enhanceChapterFilters() {
+        var inners = document.querySelectorAll('.filter-select-inner');
+        for (var k = 0; k < inners.length; k++) {
+            var inner = inners[k];
+            if (!inner.querySelector('.filter-select-btn[data-key="season"][data-chapter]')) {continue;}
+            var titles = inner.querySelectorAll('.title');
+            for (var ti = 0; ti < titles.length; ti++) {
+                (function(title, inner) {
+                    if (title.getAttribute('data-fngg-chapter')) {return;}
+                    var chapter = null, n = title.nextElementSibling;
+                    while (n) {
+                        if (n.classList && n.classList.contains('title')) {break;}
+                        if (n.classList && n.classList.contains('filter-select-btn') && n.getAttribute('data-key') === 'season' && n.getAttribute('data-chapter')) { chapter = n.getAttribute('data-chapter'); break; }
+                        n = n.nextElementSibling;
+                    }
+                    if (chapter === null) {return;}
+                    title.setAttribute('data-fngg-chapter', chapter);
+                    title.classList.add('fngg-chapter-toggle');
+                    title.title = t('chapterToggleHint');
+                    title.addEventListener('click', function() { toggleChapter(inner, chapter); });
+                })(titles[ti], inner);
+            }
+        }
+    }
+
+    var chapterScanTimer = null;
+    function initChapterFilters() {
+        enhanceChapterFilters();
+        updatePresetsVisibility();
+        markWishlistOwned();
+        checkShopWishlist();
+        try {
+            var obs = new MutationObserver(function() {
+                if (chapterScanTimer) {return;}
+                chapterScanTimer = setTimeout(function() { chapterScanTimer = null; enhanceChapterFilters(); updatePresetsVisibility(); markWishlistOwned(); checkShopWishlist(); }, 300);
+            });
+            obs.observe(document.body, { childList: true, subtree: true });
+        } catch(e) {}
+    }
+
+    var IMPORT_CATS = ['outfit','backpack','pickaxe','glider','contrail','emote','emoji','spray','wrap','banner','loadingscreen','music','jamtrack','instrument','car','lego','toy','companion','shoe','aura'];
+    var IMPORT_RARITIES = ['common','uncommon','rare','epic','legendary','mythic'];
+    var IMPORT_SERIES = ['marvel','dc','starwars','gaming','icon','dark','frozen','lava','shadow','slurp','cube'];
+    var TYPE_TO_CAT = {
+        outfit:'outfit', backpack:'backpack', pickaxe:'pickaxe', glider:'glider', contrail:'contrail',
+        emote:'emote', emoji:'emoji', spray:'spray', wrap:'wrap', banner:'banner', loadingscreen:'loadingscreen',
+        music:'music', jamtrack:'jamtrack',
+        guitar:'instrument', bass:'instrument', drum:'instrument', keytar:'instrument', microphone:'instrument',
+        car:'car', decal:'car', wheel:'car', trail:'car', boost:'car',
+        legokit:'lego', toy:'toy', companion:'companion', shoe:'shoe', aura:'aura'
+    };
+    var CAT_LABEL = { outfit:'catOutfit', backpack:'catBackpack', pickaxe:'catPickaxe', glider:'catGlider', contrail:'catContrail', emote:'catEmote', emoji:'catEmoji', spray:'catSpray', wrap:'catWrap', banner:'catBanner', loadingscreen:'catLoadingscreen', music:'catMusic', jamtrack:'catJamtrack', instrument:'catInstrument', car:'catCar', lego:'catLego', toy:'catToy', companion:'catCompanion', shoe:'catShoe', aura:'catAura' };
+    var RAR_LABEL = { common:'rarCommon', uncommon:'rarUncommon', rare:'rarRare', epic:'rarEpic', legendary:'rarLegendary', mythic:'rarMythic' };
+    var SERIES_LABEL = { marvel:'Marvel', dc:'DC', starwars:'Star Wars', gaming:'Gaming Legends', icon:'Icon Series', dark:'DARK', frozen:'Frozen', lava:'Lava', shadow:'Shadow', slurp:'Slurp', cube:'Cube' };
+    function catOf(type) { return TYPE_TO_CAT[type] || 'unknown'; }
+    function rarTierOf(it) {
+        var r = it.rarity || 'common';
+        return IMPORT_RARITIES.indexOf(r) !== -1 ? r : 'common';
+    }
+    function seriesOf(it) {
+        if (!it.series) {return null;}
+        var s = String(it.series).toLowerCase();
+        if (s.indexOf('marvel') !== -1) {return 'marvel';}
+        if (/\bdc\b/.test(s)) {return 'dc';}
+        if (s.indexOf('star wars') !== -1 || s.indexOf('starwars') !== -1) {return 'starwars';}
+        if (s.indexOf('gaming') !== -1 || s.indexOf('columbus') !== -1) {return 'gaming';}
+        if (s.indexOf('icon') !== -1 || s.indexOf('creator') !== -1) {return 'icon';}
+        if (s.indexOf('dark') !== -1) {return 'dark';}
+        if (s.indexOf('frozen') !== -1) {return 'frozen';}
+        if (s.indexOf('lava') !== -1) {return 'lava';}
+        if (s.indexOf('shadow') !== -1) {return 'shadow';}
+        if (s.indexOf('slurp') !== -1) {return 'slurp';}
+        if (s.indexOf('cube') !== -1) {return 'cube';}
+        return 'other';
+    }
+    function itemExcluded(it) {
+        var s = getSettings();
+        var exC = s.importExclTypes || [], exR = s.importExclRarities || [], exS = s.importExclSeries || [];
+        if (exC.indexOf(catOf(it.type)) !== -1) {return true;}
+        if (it.series) {
+            var sk = seriesOf(it);
+            return sk !== null && exS.indexOf(sk) !== -1;
+        }
+        return exR.indexOf(rarTierOf(it)) !== -1;
+    }
+    function importFilterActive() {
+        var s = getSettings();
+        return ((s.importExclTypes || []).length + (s.importExclRarities || []).length + (s.importExclSeries || []).length) > 0;
+    }
+    function applyImportFilter(items) {
+        if (!importFilterActive()) {return items;}
+        return items.filter(function(it) { return !itemExcluded(it); });
+    }
+    function chipKey(kind) { return kind === 'type' ? 'importExclTypes' : (kind === 'rarity' ? 'importExclRarities' : 'importExclSeries'); }
+    function chipsHTML(kind, list, labelFn) {
+        var ex = getSettings()[chipKey(kind)] || [];
+        return list.map(function(v) {
+            var on = ex.indexOf(v) === -1;
+            return '<button class="fchip ' + (on ? 'on' : 'off') + '" data-kind="' + kind + '" data-val="' + v + '">' + esc(labelFn(v)) + '</button>';
+        }).join('');
+    }
+    function bindChips(root) {
+        root.querySelectorAll('.fchip').forEach(function(c) {
+            c.onclick = function() {
+                var kind = c.getAttribute('data-kind'), val = c.getAttribute('data-val');
+                var key = chipKey(kind);
+                var st = getSettings(); var ex = st[key] || []; var i = ex.indexOf(val);
+                if (i === -1) {ex.push(val);} else {ex.splice(i, 1);}
+                st[key] = ex; GM_setValue('fngg_settings', JSON.stringify(st));
+                var on = ex.indexOf(val) === -1;
+                c.classList.toggle('on', on); c.classList.toggle('off', !on);
+                updateUI();
+            };
+        });
+    }
+
     function normalizeType(t) {
-        if (!t) return 'unknown';
+        if (!t) {return 'unknown';}
         var l = t.toLowerCase();
         return typeMap[l] || (typeOrder[l] !== undefined ? l : 'unknown');
     }
     function guessType(id) {
         var l = id.toLowerCase();
         for (var i = 0; i < idPatterns.length; i++) {
-            if (idPatterns[i][0].test(l)) return idPatterns[i][1];
+            if (idPatterns[i][0].test(l)) {return idPatterns[i][1];}
         }
         return null;
     }
     function getScore(item) {
         if (item.series) {
             var s = item.series.toLowerCase();
-            for (var k in seriesBonus) if (s.indexOf(k) !== -1) return seriesBonus[k];
+            for (var k in seriesBonus) {if (s.indexOf(k) !== -1) {return seriesBonus[k];}}
             return 7500;
         }
         return rarityScore[item.rarity] || 100;
     }
-    
+
     function processItemsFromProfile(itemsObj, fngg, cdb, seen, skipped, unmappedItems, prefixStats) {
         var result = [];
         for (var key in itemsObj) {
@@ -351,19 +542,19 @@
             if (tid.indexOf(':') === -1) { skipped.noBid++; continue; }
             var bid = tid.split(':')[1].toLowerCase();
             var fid = fngg[bid];
-            if (!fid || isNaN(fid)) { 
-                skipped.noMapping++; 
+            if (!fid || isNaN(fid)) {
+                skipped.noMapping++;
                 unmappedItems.push(bid);
                 var pfx = tid.split(':')[0];
                 prefixStats[pfx] = (prefixStats[pfx] || 0) + 1;
-                continue; 
+                continue;
             }
             if (seen[fid]) { skipped.duplicate++; continue; }
             seen[fid] = true;
 
             var meta = cdb[bid] || {};
             var type = normalizeType(meta.type);
-            if (!type || type === 'unknown') type = guessType(bid) || 'unknown';
+            if (!type || type === 'unknown') {type = guessType(bid) || 'unknown';}
 
             result.push({ fid: fid, name: meta.name || bid, type: type, rarity: meta.rarity || 'common', series: meta.series || null });
         }
@@ -376,30 +567,55 @@
         #fngg-tab{position:fixed;top:100px;right:0;width:22px;height:40px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-right:0;border-radius:6px 0 0 6px;cursor:pointer;z-index:999998;display:flex;align-items:center;justify-content:center;color:#888;font-size:11px;transition:right .3s ease,background .2s,color .2s}
         #fngg-tab:hover{background:rgba(40,40,45,.8);color:#fff}
         #fngg-tab.open{right:350px}
-        #fngg-info{position:fixed;top:260px;bottom:15px;right:0;width:350px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-right:0;border-radius:16px 0 0 16px;font-family:fn,sans-serif;z-index:999998;box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;transform:translateX(100%);opacity:0;transition:all .3s ease;pointer-events:none;overflow-y:auto}
-        #fngg-info.show{transform:translateX(0);opacity:1;pointer-events:auto}
-        #fngg-debug{position:fixed;top:60px;bottom:15px;left:0;width:350px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-left:0;border-radius:0 16px 16px 0;font-family:fn,sans-serif;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;transform:translateX(-105%);opacity:0;transition:all .3s ease;pointer-events:none;overflow-y:auto}
+        #fngg-debug{position:fixed;top:60px;bottom:15px;right:0;width:350px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-right:0;border-radius:16px 0 0 16px;font-family:fn,sans-serif;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;transform:translateX(105%);opacity:0;transition:transform .3s ease,opacity .3s ease;pointer-events:none;overflow-y:auto}
         #fngg-debug.show{transform:translateX(0);opacity:1;pointer-events:auto}
-        #fngg-debug .fngg-hdr{border-radius:0 16px 0 0}
-        #fngg-dtab{position:fixed;top:100px;left:0;width:22px;height:40px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-left:0;border-radius:0 6px 6px 0;cursor:pointer;z-index:999;display:flex;align-items:center;justify-content:center;font-size:12px;transition:left .3s ease,background .2s;opacity:.85}
+        #fngg-debug .fngg-hdr{border-radius:16px 0 0 0}
+        #fngg-dtab{position:fixed;top:100px;right:0;width:22px;height:40px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-right:0;border-radius:6px 0 0 6px;cursor:pointer;z-index:999;display:flex;align-items:center;justify-content:center;font-size:12px;transition:right .3s ease,top .3s ease,background .2s;opacity:.85}
         #fngg-dtab:hover{background:rgba(40,40,45,.8);opacity:1}
-        #fngg-dtab.open{left:350px}
+        #fngg-dtab.open{right:350px}
         #fngg-stats{position:fixed;top:60px;bottom:15px;left:0;width:350px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-left:0;border-radius:0 16px 16px 0;font-family:fn,sans-serif;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;transform:translateX(-105%);opacity:0;transition:all .3s ease;pointer-events:none;overflow-y:auto}
         #fngg-stats.show{transform:translateX(0);opacity:1;pointer-events:auto}
         #fngg-stats .fngg-hdr{border-radius:0 16px 0 0}
         #fngg-stats .body{padding:12px}
+        #fngg-stab{position:fixed;top:100px;left:0;width:22px;height:40px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-left:0;border-radius:0 6px 6px 0;cursor:pointer;z-index:999;display:flex;align-items:center;justify-content:center;font-size:12px;transition:left .3s ease,background .2s;opacity:.85}
+        #fngg-stab:hover{background:rgba(40,40,45,.8);opacity:1}
+        #fngg-stab.open{left:350px}
+        #fngg-ptab{position:fixed;top:148px;left:0;width:22px;height:40px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-left:0;border-radius:0 6px 6px 0;cursor:pointer;z-index:999;display:flex;align-items:center;justify-content:center;font-size:12px;transition:left .3s ease,background .2s;opacity:.85}
+        #fngg-ptab:hover{background:rgba(40,40,45,.8);opacity:1}
+        #fngg-ptab.open{left:350px}
+        #fngg-presets{position:fixed;top:60px;bottom:15px;left:0;width:350px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-left:0;border-radius:0 16px 16px 0;font-family:fn,sans-serif;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.05) inset;transform:translateX(-105%);opacity:0;transition:all .3s ease;pointer-events:none;overflow-y:auto}
+        #fngg-presets.show{transform:translateX(0);opacity:1;pointer-events:auto}
+        #fngg-presets .fngg-hdr{border-radius:0 16px 0 0}
+        #fngg-presets .body{padding:12px}
+        .pdesc{font-size:12px;color:#aaa;line-height:1.45;margin:0}
+        .presave{display:flex;gap:7px;margin:9px 0 12px}
+        .presave input{flex:1;max-width:none;cursor:text}
+        .presave button{white-space:nowrap;width:auto;padding:0 12px;height:32px;color:#f0db4f;font-weight:600;font-size:12px}
+        .prow{display:flex;align-items:center;gap:8px;padding:9px 11px;margin-bottom:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:9px;cursor:pointer;transition:all .15s}
+        .prow:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18)}
+        .prow.active{border-color:#f0db4f;background:rgba(240,219,79,.1)}
+        .prow.imp{border-style:dashed}
+        .pinfo{flex:1;min-width:0}
+        .pname{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .prow.active .pname{color:#f0db4f}
+        .pmeta{font-size:11px;color:#888;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .pdel{flex:none;width:24px;height:24px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:#888;cursor:pointer;font-size:11px;transition:all .15s}
+        .pdel:hover{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.5);color:#fff}
+        .pempty{font-size:12px;color:#777;text-align:center;padding:14px 0}
         .scards{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0}
         .scard{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 6px;text-align:center}
         .scard .v{font-size:15px;font-weight:700;color:#f0db4f}
         .scard .l{font-size:8px;color:#888;text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
         .ssec{margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.06)}
         .ssec:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0}
-        .ssec h4{margin:0 0 4px;font-size:11px;font-weight:700;color:#f0db4f;text-transform:uppercase;letter-spacing:.3px}
+        .ssec h4{margin:0 0 4px;font-size:11px;font-weight:700;color:#f0db4f;text-transform:uppercase;letter-spacing:.3px;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between}
+        .ssec h4::after{content:'';flex:0 0 auto;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor;opacity:.75;transition:transform .2s;margin-left:8px}
+        .ssec h4:hover{color:#fff}
+        .ssec.collapsed h4::after{transform:rotate(-90deg)}
+        .ssec.collapsed h4{margin-bottom:0}
+        .ssec.collapsed > :not(h4){display:none}
         .ssec p{margin:0;font-size:11px;color:#bbb;line-height:1.7;font-family:monospace}
         .ssec .dim{color:#777}
-        #fngg-itab{position:fixed;top:150px;right:0;width:22px;height:40px;background:rgba(15,15,18,.65);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);border:1px solid rgba(255,255,255,.12);border-right:0;border-radius:6px 0 0 6px;cursor:pointer;z-index:999998;display:flex;align-items:center;justify-content:center;color:#888;font-size:11px;transition:right .3s ease,top .3s ease,background .2s,color .2s}
-        #fngg-itab:hover{background:rgba(40,40,45,.8);color:#fff}
-        #fngg-itab.open{right:350px}
         .fngg-hdr{background:linear-gradient(135deg,rgba(45,45,50,.5) 0%,rgba(35,35,40,.5) 100%);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08);border-radius:16px 0 0 0}
         .fngg-brand{display:flex;align-items:center;gap:10px}
         .fngg-brand img{width:30px;height:30px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
@@ -454,9 +670,6 @@
         .login-text{flex:1}
         .login-title{font-size:13px;font-weight:600;color:#fff;text-transform:uppercase;letter-spacing:.3px}
         .login-desc{font-size:11px;color:#888;margin-top:3px}
-        .srow{display:flex;align-items:center;justify-content:space-between;padding:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px}
-        .srow .slbl{font-size:11px;color:#fff;text-transform:uppercase}
-        .srow .sdesc{font-size:9px;color:#666;margin-top:2px}
         .tog{position:relative;width:40px;height:22px;background:rgba(255,255,255,.1);border-radius:11px;cursor:pointer;transition:background .2s}
         .tog.on{background:#22c55e}
         .tog::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;transition:left .2s;box-shadow:0 2px 4px rgba(0,0,0,.2)}
@@ -481,40 +694,85 @@
         #fngg-onb::after{content:'';position:absolute;right:-6px;top:24px;border:6px solid transparent;border-right:0;border-left-color:#e6c93a}
         #fngg-onb .skip{display:block;margin-top:8px;font-size:10px;font-weight:700;color:rgba(0,0,0,.55);cursor:pointer;text-transform:uppercase;letter-spacing:.3px}
         #fngg-onb .skip:hover{color:#000}
+        .fngg-sel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);color:#fff;font-family:fn,sans-serif;font-size:12px;border-radius:8px;padding:6px 24px 6px 8px;outline:none;cursor:pointer;max-width:160px;-webkit-appearance:none;appearance:none}
+        .fngg-sel:hover{border-color:rgba(255,255,255,.3)}
+        .fngg-sel option{background:#1a1a1d;color:#fff}
+        .fngg-chapter-toggle{cursor:pointer;transition:color .15s}
+        .fngg-chapter-toggle:hover{color:#f0db4f;text-decoration:underline}
+        .bgnotice{background:linear-gradient(135deg,rgba(240,219,79,.18),rgba(240,219,79,.08));border:1px solid rgba(240,219,79,.35);color:#f0db4f;font-size:12px;font-weight:600;padding:8px 10px;border-radius:8px;margin-bottom:8px;cursor:pointer;text-align:center;transition:all .2s}
+        .bgnotice:hover{background:linear-gradient(135deg,rgba(240,219,79,.28),rgba(240,219,79,.14))}
+        #items a.item-icon.fngg-wl-owned{outline:2px solid #4ade80;outline-offset:-2px;border-radius:8px;box-shadow:0 0 10px rgba(74,222,128,.7)}
+        .sgroup{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;margin-bottom:10px;overflow:hidden}
+        .sgrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px}
+        .sgrow-l{flex:1}
+        .sgroup-sub{border-top:1px solid rgba(255,255,255,.06);transition:opacity .2s}
+        .sgroup-sub .sgrow{padding:7px 10px 7px 18px}
+        .sgroup-sub .slbl{font-size:11px;color:#bbb}
+        .setmbox{width:min(880px,94vw);max-height:88vh;overflow-y:auto;text-align:left}
+        .infombox{width:min(760px,94vw);max-height:88vh;overflow-y:auto;text-align:left}
+        #infomodal .infogrid{column-count:2;column-gap:14px;margin-top:8px}
+        #infomodal .isec{break-inside:avoid;-webkit-column-break-inside:avoid}
+        @media (max-width:620px){#infomodal .infogrid{column-count:1}}
+        .settop{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px;align-items:stretch}
+        .settop .sgroup{margin-bottom:0;display:flex;flex-direction:column}
+        .secthead{font-size:11px;font-weight:700;color:#f0db4f;text-transform:uppercase;letter-spacing:.6px;padding:9px 10px 7px;border-bottom:1px solid rgba(255,255,255,.07)}
+        .secthead-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+        #bgSub .sgrow + .sgrow{border-top:1px solid rgba(255,255,255,.05)}
+        @media (max-width:640px){.settop{grid-template-columns:1fr}}
+        .sgroup > .sgrow + .sgrow{border-top:1px solid rgba(255,255,255,.05)}
+        .chiprow{display:flex;flex-wrap:wrap;gap:5px;padding:8px 10px}
+        .chiprow+.chiprow{padding-top:0}
+        .fchip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#ddd;font-size:11px;padding:4px 9px;border-radius:20px;cursor:pointer;font-family:fn,sans-serif;transition:all .15s}
+        .fchip.on{background:rgba(240,219,79,.16);border-color:rgba(240,219,79,.45);color:#f0db4f}
+        .fchip.off{opacity:.45;text-decoration:line-through}
+        .sublabel{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.5px;font-weight:700;padding:7px 10px 1px}
+        .sgrow .slbl{font-size:13px;color:#fff;font-weight:600}
+        .sgrow .sdesc{font-size:11px;color:#999;margin-top:3px;line-height:1.4;font-weight:400}
+        .filterhint{font-size:10px;color:#888;text-align:center;margin-top:6px;cursor:pointer;text-transform:uppercase;letter-spacing:.4px}
+        .filterhint:hover{color:#f0db4f}
+        #fngg-watermark{position:fixed;right:14px;bottom:10px;z-index:999990;font-family:fn,sans-serif;text-align:right;opacity:.3;transition:opacity .25s;pointer-events:none;user-select:none;line-height:1.45}
+        #fngg-watermark:hover{opacity:.85}
+        #fngg-watermark a{pointer-events:auto;color:inherit;text-decoration:none}
+        #fngg-watermark a:hover{text-decoration:underline}
+        #fngg-watermark .wm-credit{font-size:12px;color:#fff;font-weight:600}
+        #fngg-watermark .wm-links{font-size:11px;color:#bbb}
+        #fngg-watermark .wm-disc{font-size:9px;color:#888}
+        [dir=rtl]{text-align:right}
+        [dir=rtl] .fngg-hdr,[dir=rtl] .fngg-brand,[dir=rtl] .ucard,[dir=rtl] .login-card{flex-direction:row-reverse}
         @keyframes onbpulse{0%,100%{transform:translateX(0)}50%{transform:translateX(-5px)}}
     `);
 
     var btnText = t('importLocker');
-    function setStatus(t) { 
-        btnText = t;
+    function setStatus(txt) {
+        btnText = txt;
         var btn = $('ibtn');
-        if (btn) btn.textContent = t;
+        if (btn) {btn.textContent = txt;}
     }
     function toast(msg, type) {
         var t = $('fngg-toast');
-        if (!t) return;
+        if (!t) {return;}
         t.textContent = msg;
         t.className = 'show ' + (type || '');
         setTimeout(function() { t.className = ''; }, 3000);
     }
     function modal(id, show) {
         var m = $(id);
-        if (m) m.classList.toggle('show', show);
+        if (m) {m.classList.toggle('show', show);}
     }
 
     function isNewerVersion(remote, local) {
         var r = String(remote).split('.'), l = String(local).split('.');
         for (var i = 0; i < Math.max(r.length, l.length); i++) {
             var a = parseInt(r[i] || '0', 10), b = parseInt(l[i] || '0', 10);
-            if (a > b) return true;
-            if (a < b) return false;
+            if (a > b) {return true;}
+            if (a < b) {return false;}
         }
         return false;
     }
 
     function showUpdateHint() {
         var foot = $('fngg-foot');
-        if (!foot || $('fngg-upd')) return;
+        if (!foot || $('fngg-upd')) {return;}
         var a = document.createElement('a');
         a.id = 'fngg-upd';
         a.href = GF_URL;
@@ -526,72 +784,259 @@
     }
 
     function checkForUpdate() {
-        if (isNewerVersion(GM_getValue('latestVersion', '0'), VERSION)) showUpdateHint();
+        if (isNewerVersion(GM_getValue('latestVersion', '0'), VERSION)) {showUpdateHint();}
         var last = parseInt(GM_getValue('lastUpdateCheck', '0'), 10) || 0;
-        if (Date.now() - last < UPDATE_CHECK_INTERVAL) return;
+        if (Date.now() - last < UPDATE_CHECK_INTERVAL) {return;}
         GM_setValue('lastUpdateCheck', String(Date.now()));
         http('GET', 'https://greasyfork.org/scripts/563780/code/script.meta.js').then(function(r) {
-            if (r.status !== 200 || typeof r.data !== 'string') return;
+            if (r.status !== 200 || typeof r.data !== 'string') {return;}
             var m = r.data.match(/@version\s+([\d.]+)/);
-            if (!m) return;
+            if (!m) {return;}
             GM_setValue('latestVersion', m[1]);
-            if (isNewerVersion(m[1], VERSION)) showUpdateHint();
+            if (isNewerVersion(m[1], VERSION)) {showUpdateHint();}
         }).catch(function() {});
     }
 
     var statsLoaded = false;
+    var statsLoading = false;
     var fnggMapMem = null;
-    (function migrateSidePanel() {
+    (function migratePanels() {
         var s = getSettings();
-        if (s.sidePanel === undefined && (s.debugOpen !== undefined || s.statsOpen !== undefined)) {
-            s.sidePanel = s.statsOpen ? 'stats' : (s.debugOpen ? 'debug' : '');
-            delete s.debugOpen; delete s.statsOpen;
+        if (s.sidePanel !== undefined) {
+            if (s.statsOpen === undefined) {s.statsOpen = (s.sidePanel === 'stats');}
+            if (s.debugOpen === undefined) {s.debugOpen = (s.sidePanel === 'debug');}
+            delete s.sidePanel;
             GM_setValue('fngg_settings', JSON.stringify(s));
         }
     })();
 
-    function openSide(which) {
-        var sp2 = $('fngg-stats');
-        var dbg = $('fngg-debug');
-        var dt = $('fngg-dtab');
-        var minimized = $('fngg-panel') && $('fngg-panel').classList.contains('min');
-        if (minimized) which = null;
-        saveSetting('sidePanel', which || '');
+    function panelMinimized() { return $('fngg-panel') && $('fngg-panel').classList.contains('min'); }
 
-        if (sp2) sp2.classList.toggle('show', which === 'stats');
-        if (dbg) dbg.classList.toggle('show', which === 'debug');
-        if (dt) {
-            dt.classList.toggle('open', which === 'debug');
-            dt.style.left = (which === 'stats') ? '350px' : '';
-            dt.style.display = minimized ? 'none' : '';
-        }
-        if (which === 'stats' && !statsLoaded) loadAccountStats();
+    function positionDebug() {
+        var panel = $('fngg-panel'), dbg = $('fngg-debug'), dt = $('fngg-dtab');
+        if (!dbg) {return;}
+        var top = 60;
+        if (panel && !panel.classList.contains('min')) {top = Math.round(panel.getBoundingClientRect().bottom) + 10;}
+        dbg.style.top = top + 'px';
+        if (dt) {dt.style.top = (top + 16) + 'px';}
+    }
+
+    function syncLeftTabs() {
+        var lo = ($('fngg-stats') && $('fngg-stats').classList.contains('show')) || ($('fngg-presets') && $('fngg-presets').classList.contains('show'));
+        if ($('fngg-stab')) {$('fngg-stab').classList.toggle('open', !!lo);}
+        if ($('fngg-ptab')) {$('fngg-ptab').classList.toggle('open', !!lo);}
+    }
+    function toggleStats(open) {
+        var sp2 = $('fngg-stats'), st = $('fngg-stab');
+        if (!sp2) {return;}
+        if (panelMinimized()) {open = false;}
+        if (open && $('fngg-presets') && $('fngg-presets').classList.contains('show')) {togglePresets(false);}
+        sp2.classList.toggle('show', open);
+        saveSetting('statsOpen', open);
+        if (st) {st.style.display = panelMinimized() ? 'none' : '';}
+        syncLeftTabs();
+        if (open && !statsLoaded) {loadAccountStats();}
+    }
+
+    function toggleDebug(open) {
+        var dbg = $('fngg-debug'), dt = $('fngg-dtab');
+        if (!dbg) {return;}
+        if (panelMinimized()) {open = false;}
+        dbg.classList.toggle('show', open);
+        saveSetting('debugOpen', open);
+        if (dt) { dt.classList.toggle('open', open); dt.style.display = panelMinimized() ? 'none' : ''; }
+        if (open) {positionDebug();}
     }
 
     function toggleStatsPanel() {
         var open = $('fngg-stats') && $('fngg-stats').classList.contains('show');
-        openSide(open ? null : 'stats');
+        toggleStats(!open);
+    }
+    function pageKey() {
+        var seg = location.pathname.replace(/^\/+/, '').split('/')[0].toLowerCase();
+        return seg || 'home';
+    }
+    function presetStore() {
+        try {
+            if (unsafeWindow && unsafeWindow.localStorage) {return unsafeWindow.localStorage;}
+            return window.localStorage;
+        } catch (e) {
+            return null;
+        }
+    }
+    function persistPresets(list) {
+        var ls = presetStore();
+        if (ls) {
+            try { ls.setItem('fngg_url_presets', JSON.stringify(list)); } catch (e) {}
+        }
+        saveSetting('urlPresets', list);
+    }
+    function getPresets() {
+        var list = null, ls = presetStore();
+        if (ls) {
+            try {
+                var raw = ls.getItem('fngg_url_presets');
+                if (raw) { var p = JSON.parse(raw); if (Array.isArray(p)) {list = p;} }
+            } catch (e) {}
+        }
+        if (list === null) {
+            var gm = getSettings().urlPresets;
+            if (Array.isArray(gm) && gm.length) { list = gm; persistPresets(gm); }
+        }
+        if (!list) {list = [];}
+        return list.filter(function(x) { return x && typeof x.q === 'string'; });
+    }
+    function stripId(q) {
+        return (q || '').replace(/^\?/, '').split('&').filter(function(kv) { return kv && kv.split('=')[0] !== 'id'; });
+    }
+    function curQueryString() {
+        return stripId(location.search).join('&');
+    }
+    function normQuery(q) {
+        return stripId(q).slice().sort().join('&');
+    }
+    function querySummary(q) {
+        var parts = stripId(q);
+        if (!parts.length) {return t('presetsNoFilters');}
+        return parts.map(function(kv) {
+            var i = kv.indexOf('=');
+            var k = decodeURIComponent(kv.slice(0, i < 0 ? kv.length : i).replace(/\+/g, ' '));
+            var v = i < 0 ? '' : decodeURIComponent(kv.slice(i + 1).replace(/\+/g, ' '));
+            return v ? k + ': ' + v : k;
+        }).join(' • ');
+    }
+    function applyQuery(q) {
+        var id = null;
+        location.search.replace(/^\?/, '').split('&').forEach(function(kv) { if (kv && kv.split('=')[0] === 'id') {id = kv;} });
+        var parts = stripId(q);
+        if (id) {parts.unshift(id);}
+        location.href = location.pathname + (parts.length ? '?' + parts.join('&') : '');
+    }
+    function savePreset(name) {
+        name = (name || '').trim();
+        if (!name) {return false;}
+        var q = curQueryString(), list = getPresets(), idx = -1;
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].name.toLowerCase() === name.toLowerCase()) { idx = i; break; }
+        }
+        if (idx !== -1 && !confirm(t('presetsOverwrite').replace('{name}', name))) {return false;}
+        var entry = { name: name, q: q };
+        if (idx !== -1) {list[idx] = entry;} else {list.push(entry);}
+        persistPresets(list);
+        toast(t('presetsSaved').replace('{name}', name), 'ok');
+        renderPresets();
+        return true;
+    }
+    function applyPreset(idx) {
+        var p = getPresets()[idx];
+        if (p) {applyQuery(p.q);}
+    }
+    function deletePreset(idx) {
+        var list = getPresets();
+        if (!list[idx]) {return;}
+        if (!confirm(t('presetsDelete') + ' "' + list[idx].name + '"?')) {return;}
+        list.splice(idx, 1);
+        persistPresets(list);
+        toast(t('presetsDeleted'), 'ok');
+        renderPresets();
+    }
+    function exportPresets() {
+        var list = getPresets();
+        if (!list.length) { toast(t('presetsEmpty'), 'err'); return; }
+        navigator.clipboard.writeText(JSON.stringify(list)).then(function() { toast(t('presetsExported'), 'ok'); }, function() { toast(t('couldntCopy'), 'err'); });
+    }
+    function importPresets() {
+        var raw = prompt(t('presetsImportPrompt'));
+        if (raw === null) {return;}
+        raw = raw.trim();
+        if (!raw) {return;}
+        var arr;
+        try { arr = JSON.parse(raw); } catch (e) { toast(t('presetsImportFail'), 'err'); return; }
+        if (!Array.isArray(arr)) { toast(t('presetsImportFail'), 'err'); return; }
+        var clean = arr.filter(function(x) { return x && typeof x.name === 'string' && typeof x.q === 'string'; }).map(function(x) { return { name: String(x.name).slice(0, 40), q: String(x.q) }; });
+        if (!clean.length) { toast(t('presetsImportFail'), 'err'); return; }
+        var list = getPresets();
+        clean.forEach(function(nw) {
+            var idx = -1;
+            for (var i = 0; i < list.length; i++) { if (list[i].name.toLowerCase() === nw.name.toLowerCase()) { idx = i; break; } }
+            if (idx !== -1) {list[idx] = nw;} else {list.push(nw);}
+        });
+        persistPresets(list);
+        renderPresets();
+        toast(t('presetsImported').replace('{n}', clean.length), 'ok');
+    }
+    function presetRowsHTML() {
+        var cur = normQuery(location.search), list = getPresets(), none = cur === '';
+        var h = '<div class="prow imp' + (none ? ' active' : '') + '" data-act="clear"><div class="pinfo"><div class="pname">' + esc(t('presetsClear')) + '</div><div class="pmeta">' + esc(t('presetsNoFilters')) + '</div></div></div>';
+        if (!list.length) {return h + '<div class="pempty">' + esc(t('presetsEmpty')) + '</div>';}
+        list.forEach(function(p, i) {
+            var active = !none && normQuery(p.q) === cur;
+            h += '<div class="prow' + (active ? ' active' : '') + '" data-i="' + i + '"><div class="pinfo"><div class="pname">' + esc(p.name) + '</div><div class="pmeta">' + esc(querySummary(p.q)) + '</div></div><button class="pdel" data-i="' + i + '" title="' + esc(t('presetsDelete')) + '">✕</button></div>';
+        });
+        return h;
+    }
+    function renderPresets() {
+        var box = $('fngg-plist');
+        if (!box) {return;}
+        box.innerHTML = presetRowsHTML();
+        box.querySelectorAll('.prow').forEach(function(row) {
+            row.onclick = function(ev) {
+                if (ev.target.classList.contains('pdel')) {return;}
+                if (row.getAttribute('data-act') === 'clear') {applyQuery('');}
+                else {applyPreset(parseInt(row.getAttribute('data-i'), 10));}
+            };
+        });
+        box.querySelectorAll('.pdel').forEach(function(b) {
+            b.onclick = function(ev) { ev.stopPropagation(); deletePreset(parseInt(b.getAttribute('data-i'), 10)); };
+        });
+    }
+    function togglePresets(open) {
+        var pp = $('fngg-presets'), pt = $('fngg-ptab');
+        if (!pp) {return;}
+        if (panelMinimized()) {open = false;}
+        if (open && !presetsEligible()) {open = false;}
+        if (open && $('fngg-stats') && $('fngg-stats').classList.contains('show')) {toggleStats(false);}
+        pp.classList.toggle('show', open);
+        saveSetting('presetsOpen', open);
+        if (pt) {pt.style.display = (presetsEligible() && !panelMinimized()) ? '' : 'none';}
+        syncLeftTabs();
+        if (open) {renderPresets();}
+    }
+    function presetsEligible() {
+        if (IS_MOBILE) {return false;}
+        if (['cosmetics', 'locker', 'most-used', 'wishlist'].indexOf(pageKey()) === -1) {return false;}
+        if (/(?:^|[?&])tag=unreleased(?:&|$)/.test(location.search)) {return false;}
+        return true;
+    }
+    function updatePresetsVisibility() {
+        var pt = $('fngg-ptab'), pp = $('fngg-presets');
+        if (!pt) {return;}
+        var show = presetsEligible() && !panelMinimized();
+        pt.style.display = show ? '' : 'none';
+        if (!show && pp && pp.classList.contains('show')) {togglePresets(false);}
     }
 
     async function loadAccountStats() {
         var el = $('fngg-stats-body');
-        if (!el || !session) return;
-        el.innerHTML = '<span style="color:#888">Loading account data...</span>';
+        if (!el || !session) {return;}
+        if (statsLoading) {return;}
+        statsLoading = true;
+        el.innerHTML = '<span style="color:#888">'+t('statsLoadingAccount')+'</span>';
         try {
             var hdrs = { 'Authorization': 'Bearer ' + session.accessToken, 'Content-Type': 'application/json' };
             var cr = await http('POST', fnBase + '/fortnite/api/game/v2/profile/' + session.accountId + '/client/QueryProfile?profileId=common_core&rvn=-1', hdrs, '{}');
-            if (cr.status !== 200) { el.textContent = 'Could not load profile (' + cr.status + ').'; return; }
+            if (cr.status !== 200) { el.textContent = t('statsErrProfile').replace('{n}', cr.status); return; }
             var prof = cr.data && cr.data.profileChanges && cr.data.profileChanges[0] ? cr.data.profileChanges[0].profile : null;
-            if (!prof) { el.textContent = 'Could not read profile.'; return; }
+            if (!prof) { el.textContent = t('statsErrRead'); return; }
             var at = (prof.stats && prof.stats.attributes) || {};
             var items2 = prof.items || {};
 
-            el.innerHTML = '<span style="color:#888">Loading battle royale stats...</span>';
+            el.innerHTML = '<span style="color:#888">'+t('statsLoadingBR')+'</span>';
             var at2 = {};
             try {
                 var br = await http('POST', fnBase + '/fortnite/api/game/v2/profile/' + session.accountId + '/client/QueryProfile?profileId=athena&rvn=-1', hdrs, '{}');
                 var p2 = br.status === 200 && br.data && br.data.profileChanges && br.data.profileChanges[0] ? br.data.profileChanges[0].profile : null;
-                if (p2 && p2.stats) at2 = p2.stats.attributes || {};
+                if (p2 && p2.stats) {at2 = p2.stats.attributes || {};}
             } catch(eA) {}
 
             var banned = null, banReasons = [];
@@ -610,7 +1055,7 @@
                 if (pc && pc.stats && pc.stats.attributes) {
                     var ca = pc.stats.attributes;
                     stwLevel = ca.level;
-                    if (ca.collection_book && ca.collection_book.maxBookXpLevelAchieved) stwBook = ca.collection_book.maxBookXpLevelAchieved;
+                    if (ca.collection_book && ca.collection_book.maxBookXpLevelAchieved) {stwBook = ca.collection_book.maxBookXpLevelAchieved;}
                     if (ca.research_levels) {
                         stwResearch = ca.research_levels;
                         var rl = ca.research_levels;
@@ -626,7 +1071,7 @@
                 if (pv && pv.items) {
                     creativeIslands = 0;
                     for (var ck in pv.items) {
-                        if ((pv.items[ck].templateId || '').indexOf('CreativePlot:') === 0) creativeIslands++;
+                        if ((pv.items[ck].templateId || '').indexOf('CreativePlot:') === 0) {creativeIslands++;}
                     }
                 }
             } catch(eV) {}
@@ -636,7 +1081,7 @@
                     var fm2 = await fetchFnggItems();
                     if (fm2.status === 200 && fm2.data) {
                         fnggMapMem = {};
-                        for (var fk in fm2.data) fnggMapMem[fk.toLowerCase()] = fm2.data[fk];
+                        for (var fk in fm2.data) {fnggMapMem[fk.toLowerCase()] = fm2.data[fk];}
                     }
                 } catch(eF) {}
             }
@@ -657,7 +1102,7 @@
                 var ex = await http('GET', epicBase + '/account/api/public/account/' + session.accountId + '/externalAuths', { 'Authorization': 'Bearer ' + session.accessToken });
                 if (ex.status === 200 && Array.isArray(ex.data)) {
                     var pNames = { psn: 'PlayStation', xbl: 'Xbox', nintendo: 'Switch', steam: 'Steam', google: 'Google', github: 'GitHub', twitch: 'Twitch' };
-                    for (var xi = 0; xi < ex.data.length; xi++) linked.push(pNames[ex.data[xi].type] || ex.data[xi].type);
+                    for (var xi = 0; xi < ex.data.length; xi++) {linked.push(pNames[ex.data[xi].type] || ex.data[xi].type);}
                 }
             } catch(eC) {}
 
@@ -668,15 +1113,15 @@
                 var tid2 = it2.templateId || '';
                 var q2 = it2.quantity || 0;
                 if (tid2.indexOf('Currency:Mtx') === 0) {
-                    if (tid2 === 'Currency:MtxGiveaway' || tid2 === 'Currency:MtxComplimentary') vbFree += q2;
-                    else vbPurchased += q2;
+                    if (tid2 === 'Currency:MtxGiveaway' || tid2 === 'Currency:MtxComplimentary') {vbFree += q2;}
+                    else {vbPurchased += q2;}
                     var plat = (it2.attributes && it2.attributes.platform) || 'Shared';
                     vbPlatforms[plat] = (vbPlatforms[plat] || 0) + q2;
                 } else {
                     var b2 = tid2.split(':')[1] ? tid2.split(':')[1].toLowerCase() : '';
                     var fm = b2.match(/^founderspack_(\d)/);
-                    if (fm) founders = Math.max(founders, parseInt(fm[1], 10));
-                    if (b2 === 'campaignaccess') hasSTW = true;
+                    if (fm) {founders = Math.max(founders, parseInt(fm[1], 10));}
+                    if (b2 === 'campaignaccess') {hasSTW = true;}
                 }
             }
 
@@ -685,74 +1130,124 @@
             var gifts = at.gift_history || {};
             var purchases = mph.purchases || [];
             var vbSpent = 0;
-            for (var pi = 0; pi < purchases.length; pi++) vbSpent += purchases[pi].totalMtxPaid || 0;
+            for (var pi = 0; pi < purchases.length; pi++) {vbSpent += purchases[pi].totalMtxPaid || 0;}
 
             var recent = purchases.slice().sort(function(a, b) { return new Date(b.purchaseDate || 0) - new Date(a.purchaseDate || 0); }).slice(0, 5);
-            el.innerHTML = '<span style="color:#888">Loading item names...</span>';
+            el.innerHTML = '<span style="color:#888">'+t('statsLoadingItems')+'</span>';
             var cdb2 = {};
             try { cdb2 = await loadCosmetics(); } catch(eD) {}
-            setStatus(t('importLocker'));
+            if (!working) {setStatus(t('importLocker'));}
             function prettyItem(p3) {
                 var lr = (p3.lootResult && p3.lootResult[0]) || {};
                 var bid3 = (lr.itemType || '').split(':')[1];
-                if (!bid3) return 'Unknown item';
+                if (!bid3) {return t('statsUnknownItem');}
                 var low3 = bid3.toLowerCase();
                 var meta3 = cdb2[low3];
                 var nm = esc(meta3 && meta3.name ? meta3.name : bid3);
                 var fid3 = fnggMapMem ? fnggMapMem[low3] : null;
-                return fid3 ? '<a href="https://fortnite.gg/cosmetics?id=' + fid3 + '" class="fngg-pitem" data-fid="' + fid3 + '" style="color:#ddd;text-decoration:underline">' + nm + '</a>' : nm;
+                if (fid3 && /^[0-9]+$/.test(String(fid3))) {
+                    return '<a href="https://fortnite.gg/cosmetics?id=' + fid3 + '" class="fngg-pitem" data-fid="' + fid3 + '" style="color:#ddd;text-decoration:underline">' + nm + '</a>';
+                }
+                return nm;
             }
 
             var foundersNames = { 1: 'Standard', 2: 'Deluxe', 3: 'Super Deluxe', 4: 'Limited Edition', 5: 'Ultimate Edition' };
             var seasons = (at2.past_seasons || []).slice().sort(function(a, b) { return (b.seasonNumber || 0) - (a.seasonNumber || 0); });
             var lifetimeWins = at2.lifetime_wins || 0;
 
-            var H = '';
-            H += '<a href="https://fortnite.gg/stats?player=' + encodeURIComponent(session.displayName) + '" target="_blank" class="btn btn-y" style="display:block;text-align:center;text-decoration:none;font-size:12px;padding:9px;color:#111 !important;font-weight:700">\ud83d\udcca Full stats on fortnite.gg</a>';
-            H += '<div class="scards">' +
-                '<div class="scard"><div class="v">' + (vbPurchased + vbFree).toLocaleString() + '</div><div class="l">V-Bucks</div></div>' +
-                '<div class="scard"><div class="v">' + lifetimeWins.toLocaleString() + '</div><div class="l">Lifetime Wins</div></div>' +
-                '<div class="scard"><div class="v">' + (at2.accountLevel || '?') + '</div><div class="l">Account Level</div></div>' +
-                '<div class="scard"><div class="v">' + vbSpent.toLocaleString() + '</div><div class="l">V-Bucks spent*</div></div></div>';
+            var wlArr = (typeof unsafeWindow !== 'undefined' && unsafeWindow.WishlistItems) ? unsafeWindow.WishlistItems : (window.WishlistItems || null);
+            var lkArr = (typeof unsafeWindow !== 'undefined' && unsafeWindow.LockerItems) ? unsafeWindow.LockerItems : (window.LockerItems || null);
+            var fidMeta = {};
+            if (fnggMapMem) { for (var bidK in cdb2) { var fidK = fnggMapMem[bidK]; if (fidK !== undefined && fidK !== null) {fidMeta[String(fidK)] = cdb2[bidK];} } }
+            var wlSec = '';
+            if (wlArr && wlArr.length) {
+                var ownedSet = {};
+                if (lkArr) { for (var li2 = 0; li2 < lkArr.length; li2++) {ownedSet[String(lkArr[li2])] = 1;} }
+                var wlOwnedFids = [];
+                for (var wi2 = 0; wi2 < wlArr.length; wi2++) { if (ownedSet[String(wlArr[wi2])]) {wlOwnedFids.push(wlArr[wi2]);} }
+                var wlBody = '<p>' + t('statsWishlistOwned').replace('{x}', wlOwnedFids.length).replace('{y}', wlArr.length) + '</p>';
+                if (wlOwnedFids.length) {
+                    var wlRows = wlOwnedFids.map(function(fid) {
+                        var m = fidMeta[String(fid)];
+                        var nm = esc(m && m.name ? m.name : ('#' + fid));
+                        return '<a href="https://fortnite.gg/cosmetics?id=' + fid + '" class="fngg-pitem" data-fid="' + fid + '" style="color:#ddd;text-decoration:underline">' + nm + '</a>';
+                    });
+                    wlBody += '<p style="margin-top:4px">' + wlRows.join('<br>') + '</p>';
+                    wlBody += '<button class="fngg-hbtn" id="fngg-wlclear" style="width:auto;height:auto;padding:5px 10px;margin-top:7px;color:#ef4444;font-weight:600;font-size:11px">' + esc(t('wlClear').replace('{n}', wlOwnedFids.length)) + '</button>';
+                }
+                wlSec = '<div class="ssec"><h4>' + t('statsWishlistH') + '</h4>' + wlBody + '</div>';
+            }
+            var colSec = '';
+            if (lkArr && lkArr.length) {
+                var byR = {}, byC = {}, mapped = 0;
+                for (var coi = 0; coi < lkArr.length; coi++) {
+                    var cm = fidMeta[String(lkArr[coi])];
+                    if (!cm) {continue;}
+                    mapped++;
+                    var rr = cm.rarity || 'common'; byR[rr] = (byR[rr] || 0) + 1;
+                    var cc2 = catOf(cm.type); byC[cc2] = (byC[cc2] || 0) + 1;
+                }
+                if (mapped) {
+                    var rOrder = ['mythic', 'legendary', 'epic', 'rare', 'uncommon', 'common'];
+                    var rParts = [];
+                    for (var roi = 0; roi < rOrder.length; roi++) { if (byR[rOrder[roi]]) {rParts.push(t(RAR_LABEL[rOrder[roi]]) + ': ' + byR[rOrder[roi]]);} }
+                    var cParts = [];
+                    for (var cj = 0; cj < IMPORT_CATS.length; cj++) { if (byC[IMPORT_CATS[cj]]) {cParts.push(t(CAT_LABEL[IMPORT_CATS[cj]]) + ': ' + byC[IMPORT_CATS[cj]]);} }
+                    colSec = '<div class="ssec"><h4>' + t('statsCollectionH') + '</h4><p>' + t('statsCollectionTotal').replace('{n}', lkArr.length) + '</p>' +
+                        (rParts.length ? '<p style="margin-top:4px">' + rParts.join(' • ') + '</p>' : '') +
+                        (cParts.length ? '<p style="margin-top:4px" class="dim">' + cParts.join(' • ') + '</p>' : '') + '</div>';
+                }
+            }
 
-            H += '<div class="ssec"><h4>\ud83d\udc64 Account</h4><p>' +
-                'Name: ' + esc(session.displayName) + '<br>' +
-                'ID: <span style="cursor:pointer;text-decoration:underline" id="statsid" title="Click to copy">' + session.accountId.slice(0, 16) + '...</span><br>' +
-                (country ? 'Country: ' + esc(country) + '<br>' : '') +
-                (prof.created ? 'Created: ' + String(prof.created).slice(0, 10) + '<br>' : '') +
-                (nameChanges !== null && nameChanges !== undefined ? 'Name changes: ' + nameChanges + (lastNameChange ? ' <span class="dim">(last: ' + lastNameChange + ')</span>' : '') + '<br>' : '') +
-                (tfa !== undefined ? '2FA: ' + (tfa ? '<span style="color:#4ade80">enabled</span>' : '<span style="color:#ef4444">disabled</span>') + '<br>' : '') +
-                (banned !== null ? 'Ban status: ' + (banned ? '<span style="color:#ef4444">BANNED</span>' + (banReasons.length ? ' <span class="dim">(' + esc(banReasons.join(', ')) + ')</span>' : '') : '<span style="color:#4ade80">Clean</span>') + '<br>' : '') +
-                (linked.length ? 'Linked: ' + esc(linked.join(' \u2022 ')) : '<span class="dim">No linked platforms</span>') + '</p></div>';
+            var H = '';
+            H += '<a href="https://fortnite.gg/stats?player=' + encodeURIComponent(session.displayName) + '" target="_blank" class="btn btn-y" style="display:block;text-align:center;text-decoration:none;font-size:12px;padding:9px;color:#111 !important;font-weight:700">'+t('statsFullStats')+'</a>';
+            H += '<div class="scards">' +
+                '<div class="scard"><div class="v">' + (vbPurchased + vbFree).toLocaleString() + '</div><div class="l">'+t('statsVbucks')+'</div></div>' +
+                '<div class="scard"><div class="v">' + lifetimeWins.toLocaleString() + '</div><div class="l">'+t('statsLifetimeWins')+'</div></div>' +
+                '<div class="scard"><div class="v">' + (at2.accountLevel || '?') + '</div><div class="l">'+t('statsAccountLevel')+'</div></div>' +
+                '<div class="scard"><div class="v">' + vbSpent.toLocaleString() + '</div><div class="l">'+t('statsVbucksSpent')+'*</div></div></div>';
+
+            H += wlSec;
+            H += colSec;
+
+            H += '<div class="ssec"><h4>'+t('statsAccount')+'</h4><p>' +
+                t('statsName')+': ' + esc(session.displayName) + '<br>' +
+                t('statsId')+': <span style="cursor:pointer;text-decoration:underline" id="statsid" title="'+t('statsClickCopy')+'">' + session.accountId.slice(0, 16) + '...</span><br>' +
+                (country ? t('statsCountry')+': ' + esc(country) + '<br>' : '') +
+                (prof.created ? t('statsCreated')+': ' + String(prof.created).slice(0, 10) + '<br>' : '') +
+                (nameChanges !== null && nameChanges !== undefined ? t('statsNameChanges')+': ' + nameChanges + (lastNameChange ? ' <span class="dim">('+t('statsLast')+': ' + lastNameChange + ')</span>' : '') + '<br>' : '') +
+                (tfa !== undefined ? '2FA: ' + (tfa ? '<span style="color:#4ade80">'+t('statsEnabled')+'</span>' : '<span style="color:#ef4444">'+t('statsDisabled')+'</span>') + '<br>' : '') +
+                (banned !== null ? t('statsBanStatus')+': ' + (banned ? '<span style="color:#ef4444">'+t('statsBanned')+'</span>' + (banReasons.length ? ' <span class="dim">(' + esc(banReasons.join(', ')) + ')</span>' : '') : '<span style="color:#4ade80">'+t('statsClean')+'</span>') + '<br>' : '') +
+                (linked.length ? t('statsLinked')+': ' + esc(linked.join(' \u2022 ')) : '<span class="dim">'+t('statsNoLinked')+'</span>') + '</p></div>';
 
             var platParts = [];
-            for (var pk in vbPlatforms) { if (vbPlatforms[pk] > 0) platParts.push(pk + ': ' + vbPlatforms[pk].toLocaleString()); }
-            H += '<div class="ssec"><h4>\ud83d\udcb0 V-Bucks</h4><p>' +
-                'Balance: <strong style="color:#4ade80">' + (vbPurchased + vbFree).toLocaleString() + '</strong><br>' +
-                'Purchased: ' + vbPurchased.toLocaleString() + ' \u2022 Free: ' + vbFree.toLocaleString() +
+            for (var pk in vbPlatforms) { if (vbPlatforms[pk] > 0) {platParts.push(pk + ': ' + vbPlatforms[pk].toLocaleString());} }
+            H += '<div class="ssec"><h4>'+t('statsVbucksH')+'</h4><p>' +
+                t('statsBalance')+': <strong style="color:#4ade80">' + (vbPurchased + vbFree).toLocaleString() + '</strong><br>' +
+                t('statsPurchased')+': ' + vbPurchased.toLocaleString() + ' \u2022 '+t('statsFree')+': ' + vbFree.toLocaleString() +
                 (platParts.length > 1 ? '<br><span class="dim">' + platParts.join(' \u2022 ') + '</span>' : '') + '</p></div>';
 
-            var seasonNow = at2.season_num ? 'Season ' + at2.season_num + ': Level ' + (at2.level || '?') + ' \u2022 BP ' + (at2.book_level || '?') + (at2.book_purchased ? '' : ' <span class="dim">(free pass)</span>') : '<span class="dim">No data</span>';
+            var seasonNow = at2.season_num ? t('statsSeason') + ' ' + at2.season_num + ': ' + t('statsLevel') + ' ' + (at2.level || '?') + ' \u2022 ' + t('statsBP') + ' ' + (at2.book_level || '?') + (at2.book_purchased ? '' : ' <span class="dim">('+t('statsFreePass')+')</span>') : '<span class="dim">'+t('statsNoData')+'</span>';
             var bpCount = 0;
-            for (var bp = 0; bp < seasons.length; bp++) { if (seasons[bp].purchasedVIP) bpCount++; }
-            H += '<div class="ssec"><h4>\u2694\ufe0f Battle Royale</h4><p>' + seasonNow + '<br>Lifetime wins: ' + lifetimeWins.toLocaleString() + '<br>Seasons played: ' + seasons.length + ' \u2022 Battle passes: ' + bpCount + '</p></div>';
+            for (var bp = 0; bp < seasons.length; bp++) { if (seasons[bp].purchasedVIP) {bpCount++;} }
+            H += '<div class="ssec"><h4>'+t('statsBR')+'</h4><p>' + seasonNow + '<br>'+t('statsLifetimeWins')+': ' + lifetimeWins.toLocaleString() + '<br>'+t('statsSeasonsPlayed')+': ' + seasons.length + ' \u2022 '+t('statsBattlePasses')+': ' + bpCount + '</p></div>';
 
             if (seasons.length) {
                 var rowsTop = [], rowsRest = [];
                 for (var s2 = 0; s2 < seasons.length; s2++) {
                     var sn = seasons[s2];
-                    var row = 'S' + sn.seasonNumber + ': Lvl ' + (sn.seasonLevel || '?') + ' \u2022 ' + (sn.numWins || 0) + ' wins' + (sn.purchasedVIP ? ' \u2022 BP' : '');
+                    var row = 'S' + sn.seasonNumber + ': ' + t('statsLvl') + ' ' + (sn.seasonLevel || '?') + ' \u2022 ' + (sn.numWins || 0) + ' ' + t('statsWins') + (sn.purchasedVIP ? ' \u2022 ' + t('statsBP') : '');
                     (s2 < 10 ? rowsTop : rowsRest).push(row);
                 }
-                H += '<div class="ssec"><h4>\ud83d\udcdc Season History</h4><p>' + rowsTop.join('<br>') +
-                    (rowsRest.length ? '<span id="seasrest" style="display:none"><br>' + rowsRest.join('<br>') + '</span><br><span id="seasmore" style="cursor:pointer;color:#f0db4f;text-decoration:underline">+' + rowsRest.length + ' more</span>' : '') + '</p></div>';
+                H += '<div class="ssec"><h4>'+t('statsSeasonHistory')+'</h4><p>' + rowsTop.join('<br>') +
+                    (rowsRest.length ? '<span id="seasrest" style="display:none"><br>' + rowsRest.join('<br>') + '</span><br><span id="seasmore" style="cursor:pointer;color:#f0db4f;text-decoration:underline">+' + rowsRest.length + ' '+t('statsMore')+'</span>' : '') + '</p></div>';
             }
 
-            H += '<div class="ssec"><h4>\ud83d\uded2 Purchases</h4><p>' +
-                'Item shop purchases: ' + purchases.length + ' <span class="dim">(tracked)</span><br>' +
-                'V-Bucks spent: ' + vbSpent.toLocaleString() + ' <span class="dim">(tracked)</span><br>' +
-                (iap.packages && iap.packages.length ? 'Packs owned: ' + iap.packages.length + '<br>' : '') +
-                'Refunds used: ' + (mph.refundsUsed || 0) + ' \u2022 Tickets left: ' + (mph.refundCredits !== undefined ? mph.refundCredits : '?') + '</p></div>';
+            H += '<div class="ssec"><h4>'+t('statsPurchasesH')+'</h4><p>' +
+                t('statsItemShopPurch')+': ' + purchases.length + ' <span class="dim">'+t('statsTracked')+'</span><br>' +
+                t('statsVbucksSpent')+': ' + vbSpent.toLocaleString() + ' <span class="dim">'+t('statsTracked')+'</span><br>' +
+                (iap.packages && iap.packages.length ? t('statsPacksOwned')+': ' + iap.packages.length + '<br>' : '') +
+                t('statsRefundsUsed')+': ' + (mph.refundsUsed || 0) + ' \u2022 '+t('statsTicketsLeft')+': ' + (mph.refundCredits !== undefined ? mph.refundCredits : '?') + '</p></div>';
 
             if (recent.length) {
                 var rrows = [];
@@ -760,41 +1255,44 @@
                     var rp = recent[r2];
                     rrows.push(prettyItem(rp) + ' <span class="dim">' + (rp.totalMtxPaid || 0) + ' VB \u2022 ' + String(rp.purchaseDate || '').slice(0, 10) + '</span>');
                 }
-                H += '<div class="ssec"><h4>\ud83d\udd52 Recent Purchases</h4><p>' + rrows.join('<br>') + '</p></div>';
+                H += '<div class="ssec"><h4>'+t('statsRecentPurch')+'</h4><p>' + rrows.join('<br>') + '</p></div>';
             }
 
-            H += '<div class="ssec"><h4>\ud83c\udf81 Gifts</h4><p>Sent: ' + (gifts.num_sent || 0) + ' \u2022 Received: ' + (gifts.num_received || 0) +
-                (at.allowed_to_receive_gifts === false ? '<br><span class="dim">Receiving disabled</span>' : '') + '</p></div>';
+            H += '<div class="ssec"><h4>'+t('statsGifts')+'</h4><p>'+t('statsSent')+': ' + (gifts.num_sent || 0) + ' \u2022 '+t('statsReceived')+': ' + (gifts.num_received || 0) +
+                (at.allowed_to_receive_gifts === false ? '<br><span class="dim">'+t('statsReceivingDisabled')+'</span>' : '') + '</p></div>';
 
             var stwBits = [];
             if (hasSTW) {
-                stwBits.push('Owned' + (founders ? ' \u2022 ' + foundersNames[founders] + ' Founder\u2019s Pack' : ''));
-                if (stwLevel) stwBits.push('Commander level: ' + stwLevel);
-                if (stwPower !== null) stwBits.push('Research power: ' + stwPower);
-                if (stwBook) stwBits.push('Collection book: ' + stwBook);
-                if (stwResearch) stwBits.push('<span class="dim">F' + (stwResearch.fortitude || 0) + ' \u2022 O' + (stwResearch.offense || 0) + ' \u2022 R' + (stwResearch.resistance || 0) + ' \u2022 T' + (stwResearch.technology || 0) + '</span>');
+                stwBits.push(t('statsOwned') + (founders ? ' \u2022 ' + foundersNames[founders] + ' ' + t('statsFoundersPack') : ''));
+                if (stwLevel) {stwBits.push(t('statsCommanderLevel')+': ' + stwLevel);}
+                if (stwPower !== null) {stwBits.push(t('statsResearchPower')+': ' + stwPower);}
+                if (stwBook) {stwBits.push(t('statsCollectionBook')+': ' + stwBook);}
+                if (stwResearch) {stwBits.push('<span class="dim">F' + (stwResearch.fortitude || 0) + ' \u2022 O' + (stwResearch.offense || 0) + ' \u2022 R' + (stwResearch.resistance || 0) + ' \u2022 T' + (stwResearch.technology || 0) + '</span>');}
             } else {
-                stwBits.push('<span class="dim">Not owned</span>');
+                stwBits.push('<span class="dim">'+t('statsNotOwned')+'</span>');
             }
-            H += '<div class="ssec"><h4>\ud83c\udfd7\ufe0f Save the World</h4><p>' + stwBits.join('<br>') + '</p></div>';
+            H += '<div class="ssec"><h4>'+t('statsSTW')+'</h4><p>' + stwBits.join('<br>') + '</p></div>';
             if (creativeIslands !== null) {
-                H += '<div class="ssec"><h4>\ud83c\udfa8 Creative</h4><p>Own islands: ' + creativeIslands + '</p></div>';
+                H += '<div class="ssec"><h4>'+t('statsCreative')+'</h4><p>'+t('statsOwnIslands')+': ' + creativeIslands + '</p></div>';
             }
 
             var sacNow = (at.mtx_affiliate || '').trim();
             var sacLine;
             if (sacNow.toLowerCase() === SAC.toLowerCase()) {
-                sacLine = esc(sacNow) + ' <span style="color:#4ade80">\u2764\ufe0f Thank you for the support!</span>';
+                sacLine = esc(sacNow) + ' <span style="color:#4ade80">'+t('statsThankYou')+'</span>';
             } else if (sacNow) {
-                sacLine = esc(sacNow) + '<br><span class="dim">Enjoying this tool? Code ' + SAC.toUpperCase() + ' supports development \u2764\ufe0f</span>';
+                sacLine = esc(sacNow) + '<br><span class="dim">'+t('statsSupportPitch').replace('{code}', SAC.toUpperCase())+'</span>';
             } else {
-                sacLine = '<span class="dim">None set. Enjoying this tool? Code ' + SAC.toUpperCase() + ' supports development \u2764\ufe0f</span>';
+                sacLine = '<span class="dim">'+t('statsNoneSet')+' '+t('statsSupportPitch').replace('{code}', SAC.toUpperCase())+'</span>';
             }
-            H += '<div class="ssec"><h4>\u2b50 Creator Code</h4><p>' + sacLine + '</p></div>';
+            H += '<div class="ssec"><h4>'+t('statsCreatorCodeH')+'</h4><p>' + sacLine + '</p></div>';
 
-            H += '<p style="margin:6px 0 0;font-size:9px;color:#555;line-height:1.4">* Epic only keeps a partial purchase history in the profile. Real totals can be higher. Console purchases and ban history are not exposed by this API, only the current ban status.</p>';
+            H += '<p style="margin:6px 0 0;font-size:9px;color:#555;line-height:1.4">'+t('statsFootnote')+'</p>';
 
             el.innerHTML = H;
+            el.querySelectorAll('.ssec > h4').forEach(function(h4) {
+                h4.onclick = function() { h4.parentNode.classList.toggle('collapsed'); };
+            });
             el.querySelectorAll('.fngg-pitem').forEach(function(a2) {
                 a2.onclick = function(ev2) {
                     ev2.preventDefault();
@@ -805,45 +1303,111 @@
                     return false;
                 };
             });
+            var wlc = $('fngg-wlclear');
+            if (wlc) {wlc.onclick = clearOwnedWishlist;}
             var smore = $('seasmore');
-            if (smore) smore.onclick = function() {
+            if (smore) {smore.onclick = function() {
                 $('seasrest').style.display = '';
                 smore.style.display = 'none';
-            };
+            };}
             var sid = $('statsid');
-            if (sid) sid.onclick = function() {
+            if (sid) {sid.onclick = function() {
                 navigator.clipboard.writeText(session.accountId).then(function() { toast(t('copiedShort'), 'ok'); });
-            };
+            };}
             statsLoaded = true;
         } catch(e3) {
-            el.textContent = 'Could not load account data.';
+            el.textContent = t('statsErrLoad');
+        } finally {
+            statsLoading = false;
         }
+    }
+    async function clearOwnedWishlist() {
+        var wl = (typeof unsafeWindow !== 'undefined' && unsafeWindow.WishlistItems) ? unsafeWindow.WishlistItems : window.WishlistItems;
+        var lk = (typeof unsafeWindow !== 'undefined' && unsafeWindow.LockerItems) ? unsafeWindow.LockerItems : window.LockerItems;
+        if (!wl || !lk) {return;}
+        var lkset = {};
+        for (var i = 0; i < lk.length; i++) {lkset[String(lk[i])] = 1;}
+        var owned = [];
+        for (var j = 0; j < wl.length; j++) { if (lkset[String(wl[j])]) {owned.push(wl[j]);} }
+        if (!owned.length) {return;}
+        if (!confirm(t('wlClearConfirm').replace('{n}', owned.length))) {return;}
+        var fetchFn = (typeof unsafeWindow !== 'undefined' && unsafeWindow.fetch) ? unsafeWindow.fetch : fetch;
+        for (var k = 0; k < owned.length; k++) {
+            try { await fetchFn('/wishlist', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'delete=' + encodeURIComponent(owned[k]), credentials: 'include' }); } catch (e) {}
+            var ix = wl.indexOf(owned[k]);
+            if (ix !== -1) {wl.splice(ix, 1);}
+        }
+        toast(t('wlCleared').replace('{n}', owned.length), 'ok');
+        statsLoaded = false;
+        loadAccountStats();
+    }
+    function markWishlistOwned() {
+        if (location.pathname.toLowerCase().indexOf('/wishlist') === -1) {return;}
+        var lk = (typeof unsafeWindow !== 'undefined' && unsafeWindow.LockerItems) ? unsafeWindow.LockerItems : window.LockerItems;
+        var lkset = {};
+        if (lk) { for (var i = 0; i < lk.length; i++) {lkset[String(lk[i])] = 1;} }
+        var cards = document.querySelectorAll('#items a.item-icon');
+        for (var j = 0; j < cards.length; j++) {
+            cards[j].classList.toggle('fngg-wl-owned', !!lkset[String(cards[j].dataset.id)]);
+        }
+    }
+    function checkShopWishlist() {
+        if (location.pathname.toLowerCase().indexOf('/shop') === -1) {return;}
+        var wl = (typeof unsafeWindow !== 'undefined' && unsafeWindow.WishlistItems) ? unsafeWindow.WishlistItems : window.WishlistItems;
+        var banner = $('fngg-shopwl');
+        var n = 0;
+        if (wl && wl.length) {
+            var wlset = {};
+            for (var i = 0; i < wl.length; i++) {wlset[String(wl[i])] = 1;}
+            var seen = {};
+            var links = document.querySelectorAll('a[href*="/cosmetics?id="]');
+            for (var j = 0; j < links.length; j++) {
+                var mm = /[?&]id=(\d+)/.exec(links[j].getAttribute('href') || '');
+                if (!mm) {continue;}
+                if (wlset[mm[1]] && !seen[mm[1]]) { seen[mm[1]] = 1; n++; }
+            }
+        }
+        if (!n) { if (banner) {banner.style.display = 'none';} return; }
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'fngg-shopwl';
+            banner.className = 'bgnotice';
+            banner.style.position = 'fixed';
+            banner.style.left = '15px';
+            banner.style.bottom = '15px';
+            banner.style.maxWidth = '260px';
+            banner.style.zIndex = '999998';
+            banner.onclick = function() { location.href = '/shop?type=wishlist'; };
+            document.body.appendChild(banner);
+        }
+        banner.style.display = '';
+        banner.innerHTML = '⭐ ' + esc(t('shopWishlist').replace('{n}', n));
     }
 
     function endTour() {
         saveSetting('onboarded', true);
         var el = $('fngg-onb');
-        if (el && el.parentNode) el.parentNode.removeChild(el);
+        if (el && el.parentNode) {el.parentNode.removeChild(el);}
     }
 
     function updateTour(forceStep) {
-        if (IS_MOBILE) return;
+        if (IS_MOBILE) {return;}
         var el = $('fngg-onb');
         if (getSettings().onboarded && !forceStep) {
-            if (el && el.parentNode) el.parentNode.removeChild(el);
+            if (el && el.parentNode) {el.parentNode.removeChild(el);}
             return;
         }
         var panel = $('fngg-panel');
         if (!panel || panel.classList.contains('min')) {
-            if (el && el.parentNode) el.parentNode.removeChild(el);
+            if (el && el.parentNode) {el.parentNode.removeChild(el);}
             return;
         }
         var step = forceStep;
         if (!step) {
-            if (!IS_LOCKER) step = 'tourGo';
-            else if (pollInterval) step = 'tour1';
-            else if (!session) step = 'tour0';
-            else step = 'tour2';
+            if (!IS_LOCKER) {step = 'tourGo';}
+            else if (pollInterval) {step = 'tour1';}
+            else if (!session) {step = 'tour0';}
+            else {step = 'tour2';}
         }
         if (!el) {
             el = document.createElement('div');
@@ -862,12 +1426,13 @@
     function updateUI() {
         updateUIInner();
         updateTour();
+        positionDebug();
     }
 
     function updateUIInner() {
         var uel = $('usec');
         var ael = $('asec');
-        if (!uel || !ael) return;
+        if (!uel || !ael) {return;}
 
         if (IS_MOBILE) {
             uel.innerHTML = '<div class="ucard"><div class="ucard-placeholder">📱</div><div class="info"><div class="name">'+t('desktopOnly')+'</div><div class="status" style="color:#ef4444">'+t('notSupportedMobile')+'</div></div></div>';
@@ -880,8 +1445,8 @@
             ael.innerHTML = '<button class="btn btn-y" id="gobtn">'+t('toMyLocker')+'</button>';
             $('gobtn').onclick = function() {
                 var link = document.querySelector('a[href*="/locker?id="]');
-                if (link) location.href = link.href;
-                else toast(t('fnggLoginFirst'), 'err');
+                if (link) {location.href = link.href;}
+                else {toast(t('fnggLoginFirst'), 'err');}
             };
             return;
         }
@@ -896,13 +1461,15 @@
             var avatar = session.skinIcon || LOGO;
             var minsLeft = session.ts ? Math.max(0, Math.round((SESSION_TIMEOUT - (Date.now() - session.ts)) / 60000)) : null;
             var tokenTxt = minsLeft !== null ? ' · ' + (minsLeft >= 60 ? Math.floor(minsLeft / 60) + 'h ' + (minsLeft % 60) + 'm' : minsLeft + 'm') + ' ' + t('tokenLeft') : '';
-            
+
             uel.innerHTML = '<div class="ucard"><img src="'+avatar+'"><div class="info"><div class="name" id="uname" style="cursor:pointer" title="\ud83d\udd0d">'+esc(session.displayName)+'</div><div class="status">'+t('connected')+tokenTxt+'</div></div><button class="lout" id="lout">'+t('logout')+'</button></div>';
-            ael.innerHTML = '<button class="btn btn-g" id="ibtn"'+(working?' disabled':'')+'>'+btnText+'</button>';
-            
+            ael.innerHTML = (bgNewCount > 0 ? '<div id="fngg-bgnotice" class="bgnotice">✨ +' + bgNewCount + ' ' + esc(t('newSinceImport')) + '</div>' : '') + '<button class="btn btn-g" id="ibtn"'+(working?' disabled':'')+'>'+btnText+'</button>' + (importFilterActive() ? '<div id="fngg-filterhint" class="filterhint">⚙ ' + esc(t('importFilterActive')) + '</div>' : '');
+
             $('lout').onclick = logout;
             $('ibtn').onclick = doImport;
             $('uname').onclick = toggleStatsPanel;
+            var bn = $('fngg-bgnotice'); if (bn) {bn.onclick = doImport;}
+            var fh = $('fngg-filterhint'); if (fh) {fh.onclick = function() { modal('setmodal', true); };}
         } else if (pollInterval) {
             uel.innerHTML = '<div class="ucard"><div class="spin" style="margin:0;width:24px;height:24px;border-width:2px"></div><div class="info"><div class="name">'+t('waitingLogin')+'</div><div class="status" style="color:#f0db4f">'+t('completeLogin')+'</div></div></div><div style="text-align:center;margin-bottom:10px"><a href="'+verifyUri+'" target="_blank" style="font-size:11px;color:#888;text-decoration:underline">'+t('loginDidntOpen')+'</a></div>';
             ael.innerHTML = '<button class="btn btn-x" id="cbtn" style="margin:0">'+t('cancel')+'</button>';
@@ -915,31 +1482,42 @@
     }
 
     function createUI() {
-        if ($('fngg-panel')) return;
+        if ($('fngg-panel')) {return;}
 
         var p = document.createElement('div');
         p.id = 'fngg-panel';
-        var hdrBtns = (IS_LOCKER && !IS_MOBILE ? '<button class="fngg-hbtn" id="dbtn" title="Debug">🐛</button>' : '') + (!IS_MOBILE ? '<button class="fngg-hbtn" id="setbtn" title="'+t('settings')+'">⚙</button>' : '') + '<button class="fngg-hbtn" id="ibtn2" title="Info">?</button>';
-        p.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>Locker Import</span></div><div class="fngg-btns">'+hdrBtns+'</div></div><div class="body"><div id="usec"></div><div id="asec"></div><div id="fngg-foot"><span>'+t('freeTool')+' · '+t('creatorCode')+' <b id="ccbtn" title="'+t('copyCode')+'">'+SAC.toUpperCase()+'</b></span><a id="sharebtn" title="'+t('copyLink')+'">'+t('share')+'</a></div></div>';
+        var hdrBtns = (IS_LOCKER && !IS_MOBILE ? '<button class="fngg-hbtn" id="dbtn" title="'+t('debugTitle')+'">🐛</button>' : '') + (!IS_MOBILE ? '<button class="fngg-hbtn" id="setbtn" title="'+t('settings')+'">⚙</button>' : '') + '<button class="fngg-hbtn" id="ibtn2" title="'+t('infoTitle')+'">?</button>';
+        p.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>'+t('panelTitle')+'</span></div><div class="fngg-btns">'+hdrBtns+'</div></div><div class="body"><div id="usec"></div><div id="asec"></div><div id="fngg-foot"><span>'+t('freeTool')+' · '+t('creatorCode')+' <b id="ccbtn" title="'+t('copyCode')+'">'+SAC.toUpperCase()+'</b></span><a id="sharebtn" title="'+t('copyLink')+'">'+t('share')+'</a></div></div>';
         document.body.appendChild(p);
 
         var ip = document.createElement('div');
-        ip.id = 'fngg-info';
-        ip.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>Info</span></div></div><div class="body">' +
+        ip.id = 'infomodal';
+        ip.className = 'fngg-m';
+        ip.innerHTML = '<div class="mbox infombox"><div class="mtitle" style="text-align:center">' + esc(t('lockerImporter')) + '</div>' +
+            '<div class="infogrid">' +
             '<div class="isec"><h3>'+t('infoWhatH')+'</h3><p>'+t('infoWhat')+'</p></div>' +
-            '<div class="isec"><h3>'+t('infoSafeH')+'</h3><p>'+t('infoSafe')+'</p></div>' +
             '<div class="isec"><h3>'+t('infoHowH')+'</h3><p>'+t('infoHow')+'</p></div>' +
+            '<div class="isec"><h3>'+t('infoSafeH')+'</h3><p>'+t('infoSafe')+'</p></div>' +
             '<div class="isec"><h3>'+t('infoTokenH')+'</h3><p>'+t('infoToken')+'</p></div>' +
             '<div class="isec"><h3>'+t('infoSupportH')+'</h3><p>'+t('infoSupport')+'</p></div>' +
-            '<div class="isec"><h3>'+t('thanksH')+'</h3><p>' + CONTRIBUTORS.map(function(cb) { return '<a href="'+cb.url+'" target="_blank">'+cb.name+'</a>'; }).join(' · ') + '</p></div>' +
-            '<div class="isec footer"><p class="credit">Made with ❤️ by <a href="https://github.com/ItsReepze" target="_blank">Reepze</a></p><p class="links"><a href="https://github.com/ItsReepze/fngg-locker-importer" target="_blank">GitHub</a> · <a href="'+GF_URL+'" target="_blank">Greasyfork</a></p><p class="disclaimer">Not affiliated with Epic Games or fortnite.gg</p><p class="version">v'+VERSION+'</p></div></div>';
+            '</div>' +
+            '<button class="btn btn-x" id="infoclose" style="margin-top:8px">'+t('close')+'</button></div>';
         document.body.appendChild(ip);
+        ip.onclick = function(e) { if (e.target === ip) {modal('infomodal', false);} };
+        $('infoclose').onclick = function() { modal('infomodal', false); };
+
+        var wm = document.createElement('div');
+        wm.id = 'fngg-watermark';
+        wm.innerHTML = '<div class="wm-credit">Made with ❤️ by <a href="https://github.com/ItsReepze" target="_blank">Reepze</a></div>' +
+            '<div class="wm-links"><a href="https://github.com/ItsReepze/fngg-locker-importer" target="_blank">GitHub</a> · <a href="' + GF_URL + '" target="_blank">Greasyfork</a></div>' +
+            '<div class="wm-disc">Not affiliated with Epic Games or fortnite.gg · v' + VERSION + '</div>';
+        document.body.appendChild(wm);
 
         var dp = null;
         if (IS_LOCKER && !IS_MOBILE) {
             dp = document.createElement('div');
             dp.id = 'fngg-debug';
-            dp.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>Debug Console</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="crbtn" title="Copy report to clipboard">📋</button></div></div><div class="body"><div class="isec"><h3>📊 Last Import</h3><p id="debug-stats">No import data yet. Run an import to see statistics.</p></div><div class="isec"><h3>🔧 Diagnostics</h3><button class="fngg-hbtn" id="diagbtn" style="width:auto;padding:0 12px;height:28px">Run Diagnostics</button><p id="debug-diag" style="margin-top:8px;font-family:monospace;font-size:11px;line-height:1.7"></p></div><div class="isec" style="flex:1;display:flex;flex-direction:column"><h3>❓ Unrecognized Items</h3><p style="font-size:11px;color:#888;margin-bottom:8px;line-height:1.4">Skipped backend data (quests, tokens, schedules, vehicle parts) is summarized above. That\'s normal. Anything listed below couldn\'t be categorized and might be worth reporting.</p><div id="debug-unmapped" style="font-size:11px;color:#999;overflow-y:auto;font-family:monospace;line-height:1.8;flex:1;word-break:break-all;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;border:1px solid rgba(255,255,255,.05);white-space:pre-wrap">No data yet.</div></div></div>';
+            dp.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>'+t('debugTitle')+'</span></div><div class="fngg-btns"><button class="fngg-hbtn" id="crbtn" title="'+t('debugCopyReport')+'">📋</button></div></div><div class="body"><div class="isec"><h3>'+t('debugLastImport')+'</h3><p id="debug-stats">'+t('debugNoImport')+'</p></div><div class="isec"><h3>'+t('debugDiagnostics')+'</h3><button class="fngg-hbtn" id="diagbtn" style="width:auto;padding:0 12px;height:28px">'+t('debugRunDiag')+'</button><p id="debug-diag" style="margin-top:8px;font-family:monospace;font-size:11px;line-height:1.7"></p></div><div class="isec" style="flex:1;display:flex;flex-direction:column"><h3>'+t('debugUnrecognized')+'</h3><p style="font-size:11px;color:#888;margin-bottom:8px;line-height:1.4">'+t('debugUnrecDesc')+'</p><div id="debug-unmapped" style="font-size:11px;color:#999;overflow-y:auto;font-family:monospace;line-height:1.8;flex:1;word-break:break-all;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;border:1px solid rgba(255,255,255,.05);white-space:pre-wrap">'+t('debugNoData')+'</div></div></div>';
             document.body.appendChild(dp);
 
             var sm = document.createElement('div');
@@ -953,8 +1531,37 @@
         if (IS_LOCKER && !IS_MOBILE) {
             sp = document.createElement('div');
             sp.id = 'fngg-stats';
-            sp.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>Account Stats</span></div></div><div class="body"><div class="isec"><p id="fngg-stats-body" style="font-family:monospace;font-size:11px;line-height:1.8">Click your name to load.</p></div></div>';
+            sp.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>'+t('statsTitle')+'</span></div></div><div class="body"><div class="isec"><p id="fngg-stats-body" style="font-family:monospace;font-size:11px;line-height:1.8">'+t('statsClickLoad')+'</p></div></div>';
             document.body.appendChild(sp);
+            var stab = document.createElement('div');
+            stab.id = 'fngg-stab';
+            stab.innerHTML = '📊';
+            stab.title = t('statsTitle');
+            document.body.appendChild(stab);
+            if (getSettings().panelMin) {stab.style.display = 'none';}
+            stab.onclick = function() { toggleStats(!sp.classList.contains('show')); };
+        }
+
+        if (!IS_MOBILE) {
+            var pp = document.createElement('div');
+            pp.id = 'fngg-presets';
+            pp.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="' + LOGO + '"><span>' + t('presetsTitle') + '</span></div></div><div class="body"><div class="isec"><p class="pdesc">' + t('presetsDesc') + '</p><div class="presave"><input id="fngg-pname" class="fngg-sel" maxlength="24" placeholder="' + t('presetsNamePrompt') + '"><button class="fngg-hbtn" id="fngg-psave">' + t('presetsSaveBtn') + '</button></div><div id="fngg-plist"></div><div class="presave" style="margin-top:10px"><button class="fngg-hbtn" id="fngg-pexport" style="flex:1">' + t('presetsExport') + '</button><button class="fngg-hbtn" id="fngg-pimport" style="flex:1">' + t('presetsImport') + '</button></div></div></div>';
+            document.body.appendChild(pp);
+            var ptab = document.createElement('div');
+            ptab.id = 'fngg-ptab';
+            ptab.innerHTML = '📑';
+            ptab.title = t('presetsTitle');
+            ptab.style.top = (IS_LOCKER && !IS_MOBILE) ? '148px' : '100px';
+            document.body.appendChild(ptab);
+            ptab.style.display = 'none';
+            ptab.onclick = function() { togglePresets(!pp.classList.contains('show')); };
+            var pNameInp = pp.querySelector('#fngg-pname');
+            pp.querySelector('#fngg-psave').onclick = function() { if (savePreset(pNameInp.value)) {pNameInp.value = '';} };
+            pNameInp.onkeydown = function(ev) { if (ev.key === 'Enter') { ev.preventDefault(); if (savePreset(pNameInp.value)) {pNameInp.value = '';} } };
+            pp.querySelector('#fngg-pexport').onclick = exportPresets;
+            pp.querySelector('#fngg-pimport').onclick = importPresets;
+            renderPresets();
+            updatePresetsVisibility();
         }
 
         var te = document.createElement('div');
@@ -965,36 +1572,36 @@
             var ccm = document.createElement('div');
             ccm.id = 'ccmodal';
             ccm.className = 'fngg-m';
-            ccm.innerHTML = '<div class="mbox" style="text-align:left"><div class="mtitle" style="text-align:center">\ud83d\udd27 Set Creator Code</div>' +
-                '<p style="margin:0 0 10px;font-size:11px;color:#888;line-height:1.5">Dev tool. Sets any creator code on your account via Epic\u2019s API. Leave empty to remove the current code.</p>' +
-                '<input id="ccinput" type="text" placeholder="Creator code..." style="width:100%;box-sizing:border-box;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-family:fn,sans-serif;font-size:13px;outline:none">' +
+            ccm.innerHTML = '<div class="mbox" style="text-align:left"><div class="mtitle" style="text-align:center">'+t('ccTitle')+'</div>' +
+                '<p style="margin:0 0 10px;font-size:11px;color:#888;line-height:1.5">'+t('ccDesc')+'</p>' +
+                '<input id="ccinput" type="text" placeholder="'+t('ccPlaceholder')+'" style="width:100%;box-sizing:border-box;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-family:fn,sans-serif;font-size:13px;outline:none">' +
                 '<p id="ccstatus" style="margin:0 0 10px;font-size:11px;min-height:14px"></p>' +
-                '<button class="btn btn-y" id="ccapply" style="margin-bottom:6px">Apply</button>' +
-                '<button class="btn btn-x" id="ccclose">Close</button></div>';
+                '<button class="btn btn-y" id="ccapply" style="margin-bottom:6px">'+t('ccApply')+'</button>' +
+                '<button class="btn btn-x" id="ccclose">'+t('close')+'</button></div>';
             document.body.appendChild(ccm);
 
             var ccBusy = false;
             async function applyCC() {
-                if (ccBusy || !session) return;
+                if (ccBusy || !session) {return;}
                 ccBusy = true;
                 var val = $('ccinput').value.trim();
                 var st = $('ccstatus');
                 st.style.color = '#888';
-                st.textContent = val ? 'Checking code...' : 'Removing code...';
+                st.textContent = val ? t('ccChecking') : t('ccRemoving');
                 var ok = await setSAC(val);
                 if (ok) {
                     st.style.color = '#4ade80';
-                    st.textContent = val ? '\u2713 Code "' + val + '" is now active.' : '\u2713 Code removed.';
+                    st.textContent = val ? t('ccActive').replace('{code}', val) : t('ccRemoved');
                 } else {
                     st.style.color = '#ef4444';
-                    st.textContent = '\u2717 Code does not exist or could not be set.';
+                    st.textContent = t('ccFailed');
                 }
                 ccBusy = false;
             }
             $('ccapply').onclick = applyCC;
-            $('ccinput').addEventListener('keydown', function(ev) { if (ev.key === 'Enter') applyCC(); });
+            $('ccinput').addEventListener('keydown', function(ev) { if (ev.key === 'Enter') {applyCC();} });
             $('ccclose').onclick = function() { modal('ccmodal', false); };
-            ccm.onclick = function(ev) { if (ev.target === ccm) modal('ccmodal', false); };
+            ccm.onclick = function(ev) { if (ev.target === ccm) {modal('ccmodal', false);} };
 
             document.addEventListener('keydown', function(ev) {
                 if (ev.ctrlKey && ev.altKey && ev.shiftKey && (ev.key === 'C' || ev.key === 'c')) {
@@ -1012,15 +1619,30 @@
             var setm = document.createElement('div');
             setm.id = 'setmodal';
             setm.className = 'fngg-m';
-            setm.innerHTML = '<div class="mbox" style="text-align:left"><div class="mtitle" style="text-align:center">⚙ '+t('settings')+'</div>' +
-                '<div class="srow" style="margin-bottom:10px"><div><div class="slbl">'+t('autoLogoutLbl')+'</div><div class="sdesc">'+t('autoLogoutDesc')+'</div></div><div class="tog" id="togAL"></div></div>' +
-                '<div class="srow"><div class="slbl">'+t('languageLbl')+'</div><div style="display:flex;gap:6px">' +
-                '<button class="fngg-hbtn lngbtn" data-lng="auto" style="width:auto;padding:0 10px">'+t('langAuto')+'</button>' +
-                '<button class="fngg-hbtn lngbtn" data-lng="en" style="width:auto;padding:0 10px">EN</button>' +
-                '<button class="fngg-hbtn lngbtn" data-lng="de" style="width:auto;padding:0 10px">DE</button></div></div>' +
-                '<button class="fngg-hbtn" id="tourbtn" style="width:100%;height:30px;margin-bottom:8px">'+t('restartTour')+'</button>' +
-                '<button class="btn btn-x" id="setclose">'+t('close')+'</button></div>';
+            setm.innerHTML = '<div class="mbox setmbox"><div class="mtitle" style="text-align:center">⚙ '+t('settings')+'</div>' +
+                '<div class="settop">' +
+                '<div class="sgroup"><div class="secthead">'+t('settingsGeneral')+'</div>' +
+                '<div class="sgrow"><div class="slbl">'+t('languageLbl')+'</div><select id="langsel" class="fngg-sel">' + langOptions() + '</select></div>' +
+                '<div class="sgrow"><div class="sgrow-l"><div class="slbl">'+t('autoLogoutLbl')+'</div><div class="sdesc">'+t('autoLogoutDesc')+'</div></div><div class="tog" id="togAL"></div></div>' +
+                '</div>' +
+                '<div class="sgroup"><div class="secthead secthead-row">'+t('bgCheckLbl')+'<div class="tog" id="togBG"></div></div>' +
+                '<div class="sdesc" style="padding:7px 12px">'+t('bgCheckDesc')+'</div>' +
+                '<div id="bgSub">' +
+                '<div class="sgrow"><div class="slbl">'+t('bgThresholdLbl')+'</div><input id="bgThresh" type="number" min="1" max="9999" class="fngg-sel" style="width:72px;text-align:center;padding:6px 8px"></div>' +
+                '<div class="sgrow"><div class="slbl">'+t('bgIntervalLbl')+'</div><input id="bgInterval" type="number" min="1" max="1440" class="fngg-sel" style="width:72px;text-align:center;padding:6px 8px"></div>' +
+                '</div></div>' +
+                '</div>' +
+                '<div class="sgroup"><div class="secthead">'+t('filterImportLbl')+'</div>' +
+                '<div class="sdesc" style="padding:7px 12px 3px">'+t('filterImportDesc')+'</div>' +
+                '<div class="sublabel">'+t('filterCosmeticsLbl')+'</div><div class="chiprow">'+chipsHTML('type',IMPORT_CATS,function(v){return t(CAT_LABEL[v]);})+'</div>' +
+                '<div class="sublabel">'+t('filterRarityLbl')+'</div><div class="chiprow">'+chipsHTML('rarity',IMPORT_RARITIES,function(v){return t(RAR_LABEL[v]);})+'</div>' +
+                '<div class="sublabel">'+t('filterSpecialLbl')+'</div><div class="chiprow">'+chipsHTML('series',IMPORT_SERIES,function(v){return SERIES_LABEL[v];})+'</div>' +
+                '</div>' +
+                '<div style="display:flex;gap:10px;margin-top:14px">' +
+                '<button class="fngg-hbtn" id="tourbtn" style="flex:1;height:38px">'+t('restartTour')+'</button>' +
+                '<button class="btn btn-x" id="setclose" style="flex:1;margin-top:0">'+t('close')+'</button></div></div>';
             document.body.appendChild(setm);
+            bindChips(setm);
 
             var togAL = setm.querySelector('#togAL');
             function paintAL() {
@@ -1036,24 +1658,50 @@
                 paintAL();
             };
 
-            function paintLng() {
-                var cur = getSettings().lang || 'auto';
-                setm.querySelectorAll('.lngbtn').forEach(function(b) {
-                    var active = b.dataset.lng === cur;
-                    b.style.background = active ? 'rgba(240,219,79,.15)' : '';
-                    b.style.borderColor = active ? 'rgba(240,219,79,.4)' : '';
-                    b.style.color = active ? '#f0db4f' : '';
-                });
+            var togBG = setm.querySelector('#togBG');
+            var bgThresh = setm.querySelector('#bgThresh');
+            var bgInterval = setm.querySelector('#bgInterval');
+            var bgSub = setm.querySelector('#bgSub');
+            function paintBG() {
+                var s = getSettings();
+                var on = s.bgCheck === undefined ? true : s.bgCheck;
+                togBG.classList.toggle('on', on);
+                if (bgSub) { bgSub.style.opacity = on ? '' : '.4'; bgSub.style.pointerEvents = on ? '' : 'none'; }
+                if (bgThresh) {bgThresh.disabled = !on;}
+                if (bgInterval) {bgInterval.disabled = !on;}
             }
-            paintLng();
-            setm.querySelectorAll('.lngbtn').forEach(function(b) {
-                b.onclick = function() {
-                    var v = b.dataset.lng;
-                    if (v === 'auto') { var s = getSettings(); delete s.lang; GM_setValue('fngg_settings', JSON.stringify(s)); }
-                    else saveSetting('lang', v);
-                    location.reload();
-                };
-            });
+            if (bgThresh) {bgThresh.value = parseInt(getSettings().bgThreshold, 10) || 1;}
+            if (bgInterval) {bgInterval.value = parseInt(getSettings().bgInterval, 10) || 30;}
+            paintBG();
+            togBG.onclick = function() {
+                var s = getSettings();
+                var on = s.bgCheck === undefined ? true : s.bgCheck;
+                saveSetting('bgCheck', !on);
+                paintBG();
+            };
+            if (bgThresh) {bgThresh.onchange = function() {
+                var v = parseInt(bgThresh.value, 10);
+                if (!(v >= 1)) {v = 1;}
+                if (v > 9999) {v = 9999;}
+                bgThresh.value = v;
+                saveSetting('bgThreshold', v);
+            };}
+            if (bgInterval) {bgInterval.onchange = function() {
+                var v = parseInt(bgInterval.value, 10);
+                if (!(v >= 1)) {v = 1;}
+                if (v > 1440) {v = 1440;}
+                bgInterval.value = v;
+                saveSetting('bgInterval', v);
+                scheduleBgCheck();
+            };}
+
+            var langSel = setm.querySelector('#langsel');
+            if (langSel) {langSel.onchange = function() {
+                var v = langSel.value;
+                if (v === 'auto') { var s = getSettings(); delete s.lang; GM_setValue('fngg_settings', JSON.stringify(s)); }
+                else {saveSetting('lang', v);}
+                location.reload();
+            };}
 
             setm.querySelector('#tourbtn').onclick = function() {
                 saveSetting('onboarded', false);
@@ -1061,7 +1709,7 @@
                 updateTour();
             };
             setm.querySelector('#setclose').onclick = function() { modal('setmodal', false); };
-            setm.onclick = function(e) { if (e.target === setm) modal('setmodal', false); };
+            setm.onclick = function(e) { if (e.target === setm) {modal('setmodal', false);} };
             $('setbtn').onclick = function() { modal('setmodal', true); };
         }
 
@@ -1071,24 +1719,7 @@
         tab.className = 'open';
         document.body.appendChild(tab);
 
-        function updateInfoPosition() {
-            var panel = $('fngg-panel');
-            var info = $('fngg-info');
-            if (panel && info) {
-                var panelRect = panel.getBoundingClientRect();
-                var panelBottom = panelRect.bottom + 10;
-                info.style.top = panelBottom + 'px';
-                var it = $('fngg-itab');
-                if (it) it.style.top = (panelBottom + 12) + 'px';
-            }
-        }
-
-        var observer = new MutationObserver(function() {
-            if ($('fngg-info').classList.contains('show')) {
-                setTimeout(updateInfoPosition, 10);
-            }
-        });
-        observer.observe(p, { childList: true, subtree: true });
+        window.addEventListener('resize', function() { positionDebug(); });
 
         if (getSettings().panelMin) {
             p.classList.add('min');
@@ -1096,63 +1727,30 @@
             tab.innerHTML = '‹';
         }
 
-        var itab = document.createElement('div');
-        itab.id = 'fngg-itab';
-        itab.innerHTML = '?';
-        itab.title = 'Info';
-        document.body.appendChild(itab);
-
-        var infoActive = !getSettings().infoClosed;
-
-        function setInfoOpen(open) {
-            infoActive = open;
-            saveSetting('infoClosed', !open);
-            $('fngg-info').classList.toggle('show', open);
-            itab.classList.toggle('open', open);
-            itab.innerHTML = open ? '\u203a' : '?';
-            if (open) setTimeout(updateInfoPosition, 50);
-        }
-
-        if (getSettings().panelMin) {
-            itab.style.display = 'none';
-        } else if (infoActive) {
-            $('fngg-info').classList.add('show');
-            itab.classList.add('open');
-            itab.innerHTML = '\u203a';
-            setTimeout(updateInfoPosition, 50);
-        }
-        setTimeout(updateInfoPosition, 50);
-
-        itab.onclick = function() { setInfoOpen(!$('fngg-info').classList.contains('show')); };
-
-        window.addEventListener('resize', function() {
-            if ($('fngg-info').classList.contains('show')) {
-                updateInfoPosition();
-            }
-        });
-
+        var statsWasOpen = false, debugWasOpen = false, presetsWasOpen = false;
         function togglePanel() {
             var isMin = p.classList.toggle('min');
             tab.classList.toggle('open', !isMin);
             tab.innerHTML = isMin ? '‹' : '›';
             saveSetting('panelMin', isMin);
-            
-            var showInfo = !isMin && infoActive;
-            $('fngg-info').classList.toggle('show', showInfo);
-            itab.style.display = isMin ? 'none' : '';
-            itab.classList.toggle('open', showInfo);
-            itab.innerHTML = showInfo ? '\u203a' : '?';
-            if (showInfo) setTimeout(updateInfoPosition, 50);
 
             if (isMin) {
-                if ($('fngg-stats')) $('fngg-stats').classList.remove('show');
-                if (dp) dp.classList.remove('show');
-                if (dtab) dtab.style.display = 'none';
+                statsWasOpen = !!($('fngg-stats') && $('fngg-stats').classList.contains('show'));
+                debugWasOpen = !!(dp && dp.classList.contains('show'));
+                presetsWasOpen = !!($('fngg-presets') && $('fngg-presets').classList.contains('show'));
+                if ($('fngg-stats')) {$('fngg-stats').classList.remove('show');}
+                if (dp) {dp.classList.remove('show');}
+                if (dtab) { dtab.style.display = 'none'; dtab.classList.remove('open'); }
+                if ($('fngg-stab')) { $('fngg-stab').style.display = 'none'; $('fngg-stab').classList.remove('open'); }
+                if ($('fngg-presets')) {$('fngg-presets').classList.remove('show');}
+                if ($('fngg-ptab')) { $('fngg-ptab').style.display = 'none'; $('fngg-ptab').classList.remove('open'); }
             } else {
-                if (dtab) dtab.style.display = '';
-                var want = getSettings().sidePanel;
-                if (want === 'stats' && !session) want = '';
-                openSide(want || null);
+                if (dtab) {dtab.style.display = '';}
+                if ($('fngg-stab')) {$('fngg-stab').style.display = '';}
+                if ($('fngg-ptab')) {$('fngg-ptab').style.display = '';}
+                if (debugWasOpen) {toggleDebug(true);}
+                if (statsWasOpen && session) {toggleStats(true);}
+                if (presetsWasOpen) {togglePresets(true);}
             }
         }
 
@@ -1169,54 +1767,55 @@
             }, function() { toast(t('couldntCopy'), 'err'); });
         };
 
-        if (!IS_MOBILE) checkForUpdate();
+        if (!IS_MOBILE) {checkForUpdate();}
 
         var lastSeenV = GM_getValue('lastSeenVersion', '');
-        if (lastSeenV && lastSeenV !== VERSION) toast(t('updatedTo') + VERSION, 'ok');
+        if (lastSeenV && lastSeenV !== VERSION) {toast(t('updatedTo') + VERSION, 'ok');}
         GM_setValue('lastSeenVersion', VERSION);
-        $('ibtn2').onclick = function() { setInfoOpen(!$('fngg-info').classList.contains('show')); };
+        $('ibtn2').onclick = function() { modal('infomodal', true); };
 
         if (dp) {
             var dtab = document.createElement('div');
             dtab.id = 'fngg-dtab';
             dtab.innerHTML = '🐛';
-            dtab.title = 'Debug Console';
+            dtab.title = t('debugTitle');
             document.body.appendChild(dtab);
+            setTimeout(positionDebug, 60);
 
-            var setDebugOpen = function(open) { openSide(open ? 'debug' : null); };
-            if (getSettings().panelMin) dtab.style.display = 'none';
+            var setDebugOpen = function(open) { toggleDebug(open); };
+            if (getSettings().panelMin) {dtab.style.display = 'none';}
 
             dtab.onclick = function() { setDebugOpen(!dp.classList.contains('show')); };
             $('dbtn').onclick = function() { setDebugOpen(!dp.classList.contains('show')); };
             $('diagbtn').onclick = async function() {
                 var out = $('debug-diag');
-                out.innerHTML = 'Running...';
+                out.innerHTML = t('debugRunning');
                 var lines = [];
-                lines.push(window.pako ? '<span style="color:#4ade80">✓</span> Compression library loaded' : '<span style="color:#ef4444">✗</span> pako blocked, allow cdnjs.cloudflare.com');
+                lines.push(window.pako ? '<span style="color:#4ade80">✓</span> '+t('diagPako') : '<span style="color:#ef4444">✗</span> '+t('diagPakoBlocked'));
                 var fnggLogin = location.href.match(/locker\?id=\d+/) || document.querySelector('a[href*="/locker?id="]');
-                lines.push(fnggLogin ? '<span style="color:#4ade80">✓</span> Logged in to fortnite.gg' : '<span style="color:#ef4444">✗</span> Not logged in to fortnite.gg');
-                lines.push(session ? '<span style="color:#4ade80">✓</span> Epic account connected' : '<span style="color:#888">○</span> Epic account not connected');
-                out.innerHTML = lines.join('<br>') + '<br><span style="color:#888">Checking APIs...</span>';
+                lines.push(fnggLogin ? '<span style="color:#4ade80">✓</span> '+t('diagFnggLogin') : '<span style="color:#ef4444">✗</span> '+t('diagFnggNoLogin'));
+                lines.push(session ? '<span style="color:#4ade80">✓</span> '+t('diagEpicConn') : '<span style="color:#888">○</span> '+t('diagEpicNoConn'));
+                out.innerHTML = lines.join('<br>') + '<br><span style="color:#888">'+t('diagChecking')+'</span>';
                 try {
                     var r1 = await fetchFnggItems();
-                    if (r1.status === 200) lines.push('<span style="color:#4ade80">✓</span> fortnite.gg API reachable');
-                    else if (r1.status === 403) lines.push('<span style="color:#ef4444">✗</span> fortnite.gg API blocked (403). On Chrome, enable Tampermonkey Developer Mode or use Firefox.');
-                    else lines.push('<span style="color:#ef4444">✗</span> fortnite.gg API error (' + r1.status + ')');
-                } catch(e) { lines.push('<span style="color:#ef4444">✗</span> fortnite.gg API unreachable'); }
+                    if (r1.status === 200) {lines.push('<span style="color:#4ade80">✓</span> '+t('diagFnggOk'));}
+                    else if (r1.status === 403) {lines.push('<span style="color:#ef4444">✗</span> '+t('diagFnggBlocked'));}
+                    else {lines.push('<span style="color:#ef4444">✗</span> '+t('diagFnggErr')+' (' + r1.status + ')');}
+                } catch(e) { lines.push('<span style="color:#ef4444">✗</span> '+t('diagFnggUnreach')); }
                 try {
                     var r2 = await http('GET', 'https://fortnite-api.com/v2/news');
-                    lines.push(r2.status === 200 ? '<span style="color:#4ade80">✓</span> fortnite-api.com reachable' : '<span style="color:#ef4444">✗</span> fortnite-api.com error (' + r2.status + ')');
-                } catch(e) { lines.push('<span style="color:#ef4444">✗</span> fortnite-api.com unreachable'); }
+                    lines.push(r2.status === 200 ? '<span style="color:#4ade80">✓</span> '+t('diagApiOk') : '<span style="color:#ef4444">✗</span> '+t('diagApiErr')+' (' + r2.status + ')');
+                } catch(e) { lines.push('<span style="color:#ef4444">✗</span> '+t('diagApiUnreach')); }
                 try {
                     var r3 = await http('GET', epicBase + '/account/api/oauth/verify', {});
-                    lines.push((r3.status === 401 || r3.status === 200) ? '<span style="color:#4ade80">✓</span> Epic API reachable' : '<span style="color:#ef4444">✗</span> Epic API error (' + r3.status + ')');
-                } catch(e) { lines.push('<span style="color:#ef4444">✗</span> Epic API unreachable'); }
+                    lines.push((r3.status === 401 || r3.status === 200) ? '<span style="color:#4ade80">✓</span> '+t('diagEpicOk') : '<span style="color:#ef4444">✗</span> '+t('diagEpicErr')+' (' + r3.status + ')');
+                } catch(e) { lines.push('<span style="color:#ef4444">✗</span> '+t('diagEpicUnreach')); }
                 out.innerHTML = lines.join('<br>');
             };
             $('crbtn').onclick = function() {
                 var d = null;
                 try { d = JSON.parse(GM_getValue('debugData', 'null')); } catch(e) {}
-                var txt = (d && d.report) ? d.report : 'No import data yet.';
+                var txt = (d && d.report) ? d.report : t('debugNoImport');
                 navigator.clipboard.writeText(txt).then(function() {
                     toast(t('reportCopied'), 'ok');
                 }, function() { toast(t('couldntCopy'), 'err'); });
@@ -1228,18 +1827,18 @@
                 toast(ok ? t('thanksHeart') : t('couldntSetCode'), ok ? 'ok' : 'err');
                 setTimeout(function() {
                     var url = $('smodal').dataset.url;
-                    if (url) location.href = url;
+                    if (url) {location.href = url;}
                 }, 800);
             };
             $('nbtn').onclick = function() {
                 modal('smodal', false);
                 var url = $('smodal').dataset.url;
-                if (url) location.href = url;
+                if (url) {location.href = url;}
             };
             $('contbtn').onclick = function() {
                 modal('smodal', false);
                 var url = $('smodal').dataset.url;
-                if (url) location.href = url;
+                if (url) {location.href = url;}
             };
             sm.querySelectorAll('.shr').forEach(function(b) {
                 b.onclick = function() {
@@ -1250,10 +1849,10 @@
                     var full = t1 + ' ' + lurl + '\n\n' + t2 + ' ' + GF_URL + ' ' + tags;
                     var enc = encodeURIComponent;
                     var s = b.dataset.s;
-                    if (s === 'x') window.open('https://twitter.com/intent/tweet?text=' + enc(t1.replace(/:$/, '!') + '\n\n' + t2 + ' ' + GF_URL + ' ' + tags) + '&url=' + enc(lurl), '_blank');
-                    else if (s === 'reddit') window.open('https://www.reddit.com/submit?url=' + enc(lurl) + '&title=' + enc(t1.replace(':', '') + ' ' + tags), '_blank');
-                    else if (s === 'wa') window.open('https://wa.me/?text=' + enc(full), '_blank');
-                    else navigator.clipboard.writeText(full).then(function() { toast(t('copiedShort'), 'ok'); }, function() { toast(t('couldntCopy'), 'err'); });
+                    if (s === 'x') {window.open('https://twitter.com/intent/tweet?text=' + enc(t1.replace(/:$/, '!') + '\n\n' + t2 + ' ' + GF_URL + ' ' + tags) + '&url=' + enc(lurl), '_blank');}
+                    else if (s === 'reddit') {window.open('https://www.reddit.com/submit?url=' + enc(lurl) + '&title=' + enc(t1.replace(':', '') + ' ' + tags), '_blank');}
+                    else if (s === 'wa') {window.open('https://wa.me/?text=' + enc(full), '_blank');}
+                    else {navigator.clipboard.writeText(full).then(function() { toast(t('copiedShort'), 'ok'); }, function() { toast(t('couldntCopy'), 'err'); });}
                 };
             });
 
@@ -1262,26 +1861,33 @@
                 try {
                     var data = JSON.parse(debugData);
                     var statsEl = $('debug-stats');
-                    if (statsEl) statsEl.innerHTML = data.stats || 'No import data yet.';
+                    if (statsEl) {statsEl.innerHTML = data.stats || t('debugNoImport');}
                     var unmappedEl = $('debug-unmapped');
-                    if (unmappedEl) unmappedEl.textContent = data.unmapped || 'No data yet.';
+                    if (unmappedEl) {unmappedEl.textContent = data.unmapped || t('debugNoData');}
                 } catch(e) {}
             }
         }
 
         function restoreSidePanel() {
-            if (IS_MOBILE) return;
-            var want = getSettings().sidePanel;
-            if (!want || getSettings().panelMin) return;
-            if (want === 'stats' && !session) return;
-            openSide(want);
+            if (IS_MOBILE || getSettings().panelMin) {return;}
+            positionDebug();
+            var sset = getSettings();
+            if (sset.debugOpen) {toggleDebug(true);}
+            if (sset.statsOpen && session) {toggleStats(true);}
+            if (sset.presetsOpen) {
+                if (presetsEligible()) {
+                    togglePresets(true);
+                } else {
+                    setTimeout(function() { if (getSettings().presetsOpen && presetsEligible()) {togglePresets(true);} }, 900);
+                }
+            }
         }
 
-        if (IS_LOCKER && !IS_MOBILE) initSession().then(restoreSidePanel);
+        if (IS_LOCKER && !IS_MOBILE) {initSession().then(function() { restoreSidePanel(); bgCheck(); scheduleBgCheck(); });}
         else { updateUI(); restoreSidePanel(); }
 
         setInterval(function() {
-            if (!session || !session.ts) return;
+            if (!session || !session.ts) {return;}
             if (Date.now() - session.ts > SESSION_TIMEOUT) {
                 clearSession();
                 updateUI();
@@ -1290,7 +1896,7 @@
                 updateUI();
             }
         }, 60000);
-        
+
         setTimeout(function() {
             if (GM_getValue('pendingAutoLogout', null) === 'true') {
                 GM_deleteValue('pendingAutoLogout');
@@ -1299,6 +1905,10 @@
                 toast(t('autoLoggedOut'), 'ok');
             }
         }, AUTO_LOGOUT_DELAY);
+
+        if (IS_RTL) {
+            ['fngg-panel','infomodal','setmodal','smodal','ccmodal','fngg-stats','fngg-debug','fngg-toast','fngg-presets','fngg-stab','fngg-dtab','fngg-ptab','fngg-watermark','fngg-onb'].forEach(function(id){ var e = $(id); if (e) {e.setAttribute('dir','rtl');} });
+        }
     }
 
     async function initSession() {
@@ -1307,22 +1917,22 @@
         sessionChecking = true;
         updateUI();
         try {
-            var r = await http('GET', epicBase + '/account/api/oauth/verify', { 'Authorization': 'Bearer ' + s.accessToken });
+            var r = await httpRetry('GET', epicBase + '/account/api/oauth/verify', { 'Authorization': 'Bearer ' + s.accessToken });
             if (r.status === 200) {
                 session = s;
                 fetchCurrentSkin();
             }
-            else clearSession();
+            else {clearSession();}
         } catch(e) { clearSession(); }
         sessionChecking = false;
         updateUI();
     }
 
-    async function fetchCurrentSkin() {
-        if (!session) return;
+    function fetchCurrentSkin() {
+        if (!session) {return;}
         try {
             var avatarImg = document.querySelector('img.avatar');
-            if (avatarImg && avatarImg.src) {
+            if (avatarImg && /^https?:/.test(avatarImg.src || '')) {
                 session.skinIcon = avatarImg.src;
                 updateUI();
             }
@@ -1330,26 +1940,28 @@
     }
 
     async function startLogin() {
+        if (pollInterval) {return;}
         try {
             setStatus(t('connecting'));
             var a1 = await http('POST', epicBase + '/account/api/oauth/token', {
                 'Authorization': 'Basic ' + switchToken,
                 'Content-Type': 'application/x-www-form-urlencoded'
             }, 'grant_type=client_credentials');
-            if (a1.status !== 200) throw 'fail';
+            if (a1.status !== 200) {throw 'fail';}
 
             var a2 = await http('POST', epicBase + '/account/api/oauth/deviceAuthorization', {
                 'Authorization': 'Bearer ' + a1.data.access_token,
                 'Content-Type': 'application/x-www-form-urlencoded'
             }, 'prompt=login');
-            if (a2.status !== 200) throw 'fail';
+            if (a2.status !== 200) {throw 'fail';}
 
             deviceCode = a2.data.device_code;
             verifyUri = a2.data.verification_uri_complete;
             loginExpires = Date.now() + (a2.data.expires_in || 600) * 1000;
 
             window.open(verifyUri, '_blank');
-            pollInterval = setInterval(pollLogin, POLL_INTERVAL);
+            currentPollInterval = POLL_INTERVAL;
+            pollInterval = setInterval(pollLogin, currentPollInterval);
             updateUI();
         } catch(e) {
             setStatus(t('connect'));
@@ -1376,11 +1988,23 @@
                 saveSession(session);
                 setStatus(t('importLocker'));
                 updateUI();
-                toast('Hey ' + session.displayName + '!', 'ok');
+                toast(session.displayName ? t('greeting').replace('{name}', session.displayName) : t('connected'), 'ok');
                 fetchCurrentSkin();
-            } else if (r.data && r.data.errorCode && String(r.data.errorCode).indexOf('expired') !== -1) {
-                cancelLogin();
-                toast(t('loginExpired'), 'err');
+            } else if (r.data && r.data.errorCode) {
+                var ec = String(r.data.errorCode);
+                if (ec.indexOf('expired') !== -1) {
+                    cancelLogin();
+                    toast(t('loginExpired'), 'err');
+                } else if (ec.indexOf('slow_down') !== -1) {
+                    currentPollInterval += 5000;
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                        pollInterval = setInterval(pollLogin, currentPollInterval);
+                    }
+                } else if (ec.indexOf('pending') === -1) {
+                    cancelLogin();
+                    toast(t('loginFailed'), 'err');
+                }
             }
         } catch(e) {}
     }
@@ -1399,7 +2023,7 @@
     }
 
     async function setSAC(code) {
-        if (!session) return false;
+        if (!session) {return false;}
         try {
             var r = await http('POST', fnBase + '/fortnite/api/game/v2/profile/' + session.accountId + '/client/SetAffiliateName?profileId=common_core', {
                 'Authorization': 'Bearer ' + session.accessToken, 'Content-Type': 'application/json'
@@ -1408,31 +2032,32 @@
         } catch(e) { return false; }
     }
 
-    async function loadCosmetics() {
-        if (cosmeticsData) return cosmeticsData;
+    async function loadCosmetics(silent) {
+        if (cosmeticsData) {return cosmeticsData;}
 
         try {
             var cached = JSON.parse(GM_getValue('cosmeticsCache', 'null'));
-            if (cached && cached.v === VERSION && cached.ts && Date.now() - cached.ts < COSMETICS_CACHE_TTL && cached.db) {
+            if (cached && cached.v === COSMETICS_SCHEMA_VERSION && cached.ts && Date.now() - cached.ts < COSMETICS_CACHE_TTL && cached.db) {
                 cosmeticsData = cached.db;
                 return cosmeticsData;
             }
         } catch(e) {}
 
         var db = {};
-        var loaded = 0;
+        var loaded = 0, brOk = false;
 
         var eps = [['br', null], ['cars', 'car'], ['instruments', 'guitar'], ['tracks', 'jamtrack'], ['lego/kits', 'legokit'], ['lego', 'legokit']];
         for (var i = 0; i < eps.length; i++) {
-            setStatus(t('loadingCosmetics') + ' (' + (i+1) + '/' + eps.length + ')...');
+            if (!silent) {setStatus(t('loadingCosmetics') + ' (' + (i+1) + '/' + eps.length + ')...');}
             try {
                 var r = await http('GET', 'https://fortnite-api.com/v2/cosmetics/' + eps[i][0]);
-                if (r.status !== 200 || !r.data || !r.data.data) continue;
+                if (r.status !== 200 || !r.data || !r.data.data) {continue;}
                 loaded++;
+                if (i === 0) {brOk = true;}
                 for (var j = 0; j < r.data.data.length; j++) {
                     var item = r.data.data[j];
                     var id = item.id ? item.id.toLowerCase() : null;
-                    if (!id || db[id]) continue;
+                    if (!id || db[id]) {continue;}
 
                     var rar = (item.rarity && item.rarity.value) ? item.rarity.value.toLowerCase() : 'common';
                     var ser = (item.series && item.series.value) ? item.series.value : null;
@@ -1441,11 +2066,11 @@
                     if (srars.indexOf(rar) !== -1) {
                         ser = rar;
                         var bv = (item.rarity && item.rarity.backendValue) || '';
-                        if (bv.indexOf('Legendary') !== -1) rar = 'legendary';
-                        else if (bv.indexOf('Epic') !== -1) rar = 'epic';
-                        else if (bv.indexOf('Rare') !== -1) rar = 'rare';
-                        else if (bv.indexOf('Uncommon') !== -1) rar = 'uncommon';
-                        else rar = 'common';
+                        if (bv.indexOf('Legendary') !== -1) {rar = 'legendary';}
+                        else if (bv.indexOf('Epic') !== -1) {rar = 'epic';}
+                        else if (bv.indexOf('Rare') !== -1) {rar = 'rare';}
+                        else if (bv.indexOf('Uncommon') !== -1) {rar = 'uncommon';}
+                        else {rar = 'common';}
                     }
 
                     db[id] = {
@@ -1456,15 +2081,67 @@
                 }
             } catch(e) {}
         }
-        if (loaded > 0) {
+        if (loaded > 0 && brOk) {
             cosmeticsData = db;
-            try { GM_setValue('cosmeticsCache', JSON.stringify({ v: VERSION, ts: Date.now(), db: db })); } catch(e) {}
+            try { GM_setValue('cosmeticsCache', JSON.stringify({ v: COSMETICS_SCHEMA_VERSION, ts: Date.now(), db: db })); } catch(e) {}
         }
         return db;
     }
 
+    var bgNewCount = 0;
+
+    async function countOwnedItems() {
+        if (!session) {return null;}
+        var cdb = await loadCosmetics(true);
+        var fr = await fetchFnggItems();
+        if (fr.status !== 200) {return null;}
+        var fngg = {};
+        for (var k in fr.data) {fngg[k.toLowerCase()] = parseInt(fr.data[k], 10);}
+        var hdrs = { 'Authorization': 'Bearer ' + session.accessToken, 'Content-Type': 'application/json' };
+        var ar = await httpRetry('POST', fnBase + '/fortnite/api/game/v2/profile/' + session.accountId + '/client/QueryProfile?profileId=athena&rvn=-1', hdrs, '{}');
+        if (ar.status !== 200) {return null;}
+        var ap = ar.data && ar.data.profileChanges && ar.data.profileChanges[0] ? ar.data.profileChanges[0].profile : null;
+        var ai = (ap && ap.items) || {};
+        var ci = {};
+        try {
+            var cr = await httpRetry('POST', fnBase + '/fortnite/api/game/v2/profile/' + session.accountId + '/client/QueryProfile?profileId=common_core&rvn=-1', hdrs, '{}');
+            if (cr.status === 200) {
+                var cp = cr.data && cr.data.profileChanges && cr.data.profileChanges[0] ? cr.data.profileChanges[0].profile : null;
+                ci = (cp && cp.items) || {};
+            }
+        } catch(e) {}
+        var items = [], seen = {}, skipped = { noBid: 0, noMapping: 0, duplicate: 0 }, unmapped = [], prefix = {};
+        items = items.concat(processItemsFromProfile(ai, fngg, cdb, seen, skipped, unmapped, prefix));
+        items = items.concat(processItemsFromProfile(ci, fngg, cdb, seen, skipped, unmapped, prefix));
+        items = applyImportFilter(items);
+        return items.length;
+    }
+
+    async function bgCheck() {
+        var s = getSettings();
+        if (s.bgCheck === false) {return;}
+        if (!session || !IS_LOCKER || working) {return;}
+        var baseline = parseInt(GM_getValue('lastImportCount', '0'), 10) || 0;
+        if (baseline <= 0) {return;}
+        var threshold = parseInt(s.bgThreshold, 10); if (!(threshold >= 1)) {threshold = 1;}
+        try {
+            var cur = await countOwnedItems();
+            if (cur === null || working || !session) {return;}
+            var delta = cur - baseline;
+            if (delta >= threshold) { bgNewCount = delta; updateUI(); }
+        } catch(e) {}
+    }
+
+    var bgTimer = null;
+    function scheduleBgCheck() {
+        if (bgTimer) { clearInterval(bgTimer); bgTimer = null; }
+        var mins = parseInt(getSettings().bgInterval, 10); if (!(mins >= 1)) {mins = 30;}
+        bgTimer = setInterval(bgCheck, mins * 60000);
+    }
+
     async function doImport() {
-        if (working || !session) return;
+        if (working || !session) {return;}
+        bgNewCount = 0;
         working = true; updateUI();
 
         try {
@@ -1484,7 +2161,7 @@
             if (!fnggId) {
                 var lockerLink = document.querySelector('a[href*="/locker?id="]');
                 var linkMatch = lockerLink && lockerLink.href.match(/locker\?id=(\d+)/);
-                if (linkMatch) fnggId = linkMatch[1];
+                if (linkMatch) {fnggId = linkMatch[1];}
             }
             if (!fnggId) {
                 working = false; setStatus(t('tryAgain')); updateUI();
@@ -1502,10 +2179,10 @@
                 return;
             }
             var fngg = {};
-            for (var k in fr.data) fngg[k.toLowerCase()] = parseInt(fr.data[k]);
+            for (var k in fr.data) {fngg[k.toLowerCase()] = parseInt(fr.data[k], 10);}
 
             setStatus(t('loadingLocker'));
-            var ar = await http('POST', fnBase + '/fortnite/api/game/v2/profile/' + session.accountId + '/client/QueryProfile?profileId=athena&rvn=-1', {
+            var ar = await httpRetry('POST', fnBase + '/fortnite/api/game/v2/profile/' + session.accountId + '/client/QueryProfile?profileId=athena&rvn=-1', {
                 'Authorization': 'Bearer ' + session.accessToken, 'Content-Type': 'application/json'
             }, '{}');
 
@@ -1519,7 +2196,7 @@
             setStatus(t('loadingBanners'));
             var ci = {}, currentSAC = null;
             try {
-                var cr = await http('POST', fnBase + '/fortnite/api/game/v2/profile/' + session.accountId + '/client/QueryProfile?profileId=common_core&rvn=-1', {
+                var cr = await httpRetry('POST', fnBase + '/fortnite/api/game/v2/profile/' + session.accountId + '/client/QueryProfile?profileId=common_core&rvn=-1', {
                     'Authorization': 'Bearer ' + session.accessToken, 'Content-Type': 'application/json'
                 }, '{}');
                 if (cr.status === 200) {
@@ -1535,55 +2212,56 @@
             var unmappedItems = [];
             var seen = {};
             var prefixStats = {};
-            
+
             items = items.concat(processItemsFromProfile(ai, fngg, cdb, seen, skipped, unmappedItems, prefixStats));
             items = items.concat(processItemsFromProfile(ci, fngg, cdb, seen, skipped, unmappedItems, prefixStats));
+            items = applyImportFilter(items);
 
             if (!items.length) { working = false; setStatus(t('tryAgain')); updateUI(); toast(t('noItems'), 'err'); return; }
-            
+
             var grouped = { quest: 0, vehicle: 0, system: 0 };
             var unrecognized = [];
             for (var u = 0; u < unmappedItems.length; u++) {
                 var uid = unmappedItems[u];
-                if (/quest|challenge|bundle|punchcard|mission|daily|dailies|mastery|^q_|milestonescard/.test(uid)) grouped.quest++;
-                else if (/^vtid_|^wheel_|^carbody_|^vehicle/.test(uid)) grouped.vehicle++;
-                else if (/token|schedule|granter|generic_instance|passdata|jobboard|^iatid_|^prereq|^conditional|cosmos|season|^sparks_|^homebase|^stat_|currency|defaultcolor|^founder|^campaign|^galileo|seasonasset|musicpass|rocketpass|victorycrown|mtxpurchased|^junoaddon|battlepassgb|^companion_reactfx|^brs\d|^storm$|^tofugarden|^defaultvictory/.test(uid)) grouped.system++;
-                else unrecognized.push(uid);
+                if (/quest|challenge|bundle|punchcard|mission|daily|dailies|mastery|^q_|milestonescard/.test(uid)) {grouped.quest++;}
+                else if (/^vtid_|^wheel_|^carbody_|^vehicle/.test(uid)) {grouped.vehicle++;}
+                else if (/token|schedule|granter|generic_instance|passdata|jobboard|^iatid_|^prereq|^conditional|cosmos|season|^sparks_|^homebase|^stat_|currency|defaultcolor|^founder|^campaign|^galileo|seasonasset|musicpass|rocketpass|victorycrown|mtxpurchased|^junoaddon|battlepassgb|^companion_reactfx|^brs\d|^storm$|^tofugarden|^defaultvictory/.test(uid)) {grouped.system++;}
+                else {unrecognized.push(uid);}
             }
 
             var totalItems = items.length;
             var totalProcessed = totalItems + skipped.noBid + skipped.noMapping + skipped.duplicate;
-            var statsHTML = 
-                '<strong style="color:#4ade80">✓ ' + totalItems + ' items imported</strong><br>' +
-                (hasExisting ? '<span style="color:#f0db4f">★ +' + newCount + ' new \u2022 ' + alreadyCount + ' already in locker</span><br>' : '') +
-                '<span style="color:#888">Total processed: ' + totalProcessed + '</span><br><br>' +
-                '<strong style="color:#f0db4f">\u26a0 ' + skipped.noMapping + ' backend items skipped</strong><br>' +
-                '<span style="color:#888">Quests &amp; challenges: ' + grouped.quest + ' \u2022 Vehicles: ' + grouped.vehicle + '<br>' +
-                'System &amp; tokens: ' + grouped.system + ' \u2022 Unrecognized: ' + unrecognized.length + '<br>' +
-                'Duplicates: ' + skipped.duplicate + ' \u2022 Invalid: ' + skipped.noBid + '</span>';
-            
-            var unmappedHTML = unrecognized.length > 0
-                ? unrecognized.join('\n')
-                : 'Nothing unrecognized. All skipped items are normal backend data.';
 
-            // Compare against items already in the fortnite.gg locker (idea: thororen1234)
             var existingSet = {};
             try {
                 var pageItems = (typeof unsafeWindow !== 'undefined' && unsafeWindow.LockerItems) ? unsafeWindow.LockerItems : window.LockerItems;
                 if (pageItems && Array.isArray(pageItems)) {
-                    for (var li = 0; li < pageItems.length; li++) existingSet[pageItems[li]] = true;
+                    for (var li = 0; li < pageItems.length; li++) {existingSet[pageItems[li]] = true;}
                 }
             } catch(e) {}
             var hasExisting = Object.keys(existingSet).length > 0;
             var newCount = 0;
             if (hasExisting) {
-                for (var n = 0; n < items.length; n++) { if (!existingSet[items[n].fid]) newCount++; }
+                for (var n = 0; n < items.length; n++) { if (!existingSet[items[n].fid]) {newCount++;} }
             } else {
                 var lastCount = parseInt(GM_getValue('lastImportCount', '0'), 10) || 0;
                 newCount = lastCount > 0 ? Math.max(0, totalItems - lastCount) : 0;
             }
             var alreadyCount = hasExisting ? totalItems - newCount : 0;
             GM_setValue('lastImportCount', String(totalItems));
+
+            var statsHTML =
+                '<strong style="color:#4ade80">✓ ' + t('impItems').replace('{n}', totalItems) + '</strong><br>' +
+                (hasExisting ? '<span style="color:#f0db4f">★ ' + t('impNew').replace('{n}', newCount) + ' \u2022 ' + t('impAlready').replace('{n}', alreadyCount) + '</span><br>' : '') +
+                '<span style="color:#888">' + t('impProcessed') + ': ' + totalProcessed + '</span><br><br>' +
+                '<strong style="color:#f0db4f">\u26a0 ' + t('impSkipped').replace('{n}', skipped.noMapping) + '</strong><br>' +
+                '<span style="color:#888">' + t('impQuests') + ': ' + grouped.quest + ' \u2022 ' + t('impVehicles') + ': ' + grouped.vehicle + '<br>' +
+                t('impSystem') + ': ' + grouped.system + ' \u2022 ' + t('impUnrecognized') + ': ' + unrecognized.length + '<br>' +
+                t('impDuplicates') + ': ' + skipped.duplicate + ' \u2022 ' + t('impInvalid') + ': ' + skipped.noBid + '</span>';
+
+            var unmappedHTML = unrecognized.length > 0
+                ? unrecognized.join('\n')
+                : t('impNothingUnrec');
 
             var report = 'FNGG Locker Importer v' + VERSION + '\n' +
                 'Date: ' + new Date().toISOString() + '\n' +
@@ -1593,40 +2271,40 @@
                 (hasExisting ? 'Locker compare: ' + newCount + ' new, ' + alreadyCount + ' existing\n' : '') +
                 'Skipped templateId types: ' + Object.keys(prefixStats).map(function(k) { return k + '=' + prefixStats[k]; }).join(', ') + '\n\n' +
                 'Unrecognized (' + unrecognized.length + '):\n' + (unrecognized.join('\n') || '-');
-            
+
             var statsEl = $('debug-stats');
-            if (statsEl) statsEl.innerHTML = statsHTML;
+            if (statsEl) {statsEl.innerHTML = statsHTML;}
             var unmappedEl = $('debug-unmapped');
-            if (unmappedEl) unmappedEl.textContent = unmappedHTML;
-            
+            if (unmappedEl) {unmappedEl.textContent = unmappedHTML;}
+
             GM_setValue('debugData', JSON.stringify({ stats: statsHTML, unmapped: unmappedHTML, report: report }));
 
             setStatus(t('sorting'));
             items.sort(function(a, b) {
                 var ta = typeOrder[a.type] !== undefined ? typeOrder[a.type] : 99;
                 var tb = typeOrder[b.type] !== undefined ? typeOrder[b.type] : 99;
-                if (ta !== tb) return ta - tb;
+                if (ta !== tb) {return ta - tb;}
                 if (ta === 17) {
                     var ia = instrumentSort[a.type] || 99, ib = instrumentSort[b.type] || 99;
-                    if (ia !== ib) return ia - ib;
+                    if (ia !== ib) {return ia - ib;}
                 }
                 if (ta === 18) {
                     var ra = racingSort[a.type] || 99, rb = racingSort[b.type] || 99;
-                    if (ra !== rb) return ra - rb;
+                    if (ra !== rb) {return ra - rb;}
                 }
                 var sc = getScore(b) - getScore(a);
-                if (sc !== 0) return sc;
+                if (sc !== 0) {return sc;}
                 return (a.name || '').localeCompare(b.name || '');
             });
 
             setStatus(t('building'));
             var ids = [];
-            for (var i = 0; i < items.length; i++) ids.push(items[i].fid);
+            for (var i = 0; i < items.length; i++) {ids.push(items[i].fid);}
 
             ids.sort(function(a, b) { return a - b; });
 
             var diffs = [];
-            for (i = 0; i < ids.length; i++) diffs.push(i === 0 ? ids[i] : ids[i] - ids[i-1]);
+            for (i = 0; i < ids.length; i++) {diffs.push(i === 0 ? ids[i] : ids[i] - ids[i-1]);}
 
             var str = created + ',' + diffs.join(',');
             var comp = window.pako.deflateRaw(str, { level: 9 });
@@ -1659,16 +2337,16 @@
             }
             working = false; updateUI();
 
-            var already = currentSAC && currentSAC.trim().toLowerCase() === SAC.toLowerCase();
-            
+            var already = typeof currentSAC === 'string' && currentSAC.trim().toLowerCase() === SAC.toLowerCase();
+
             var s = getSettings();
-            if (s.autoLogout === undefined || s.autoLogout) GM_setValue('pendingAutoLogout', 'true');
-            
+            if (s.autoLogout === undefined || s.autoLogout) {GM_setValue('pendingAutoLogout', 'true');}
+
             $('smodal').dataset.url = importUrl;
             $('smodal').dataset.lockerurl = 'https://fortnite.gg/locker?id=' + fnggId;
             $('smodal').dataset.count = String(items.length);
             var countEl = $('icnt');
-            if (countEl) countEl.innerHTML = '<strong>' + items.length + '</strong>';
+            if (countEl) {countEl.innerHTML = '<strong>' + items.length + '</strong>';}
             var cmpEl = $('icompare');
             if (cmpEl) {
                 if (hasExisting) {
@@ -1698,6 +2376,12 @@
         }
     }
 
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', createUI);
-    else createUI();
+    async function boot() {
+        try { await ensureLocale(LANG); } catch(e) {}
+        createUI();
+        initChapterFilters();
+    }
+
+    if (document.readyState === 'loading') {document.addEventListener('DOMContentLoaded', boot);}
+    else {boot();}
 })();

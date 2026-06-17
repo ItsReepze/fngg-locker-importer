@@ -5,14 +5,11 @@
 **Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with one click.**
 
 [![Install](https://img.shields.io/badge/Install-Greasyfork-670000?style=for-the-badge)](https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer)
-[![Version](https://img.shields.io/badge/Version-3.8-f0db4f?style=for-the-badge)](https://github.com/ItsReepze/fngg-locker-importer/releases)
+[![Version](https://img.shields.io/badge/Version-4.0-f0db4f?style=for-the-badge)](https://github.com/ItsReepze/fngg-locker-importer/releases)
 [![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
 
 No downloads. No .exe files. No password sharing. Runs entirely in your browser.
 
-<!-- Demo GIF coming soon. Record a 10 second loop of Connect > Login > Import > Done,
-upload it as docs/demo.gif and add this line here:
-![Demo](docs/demo.gif) -->
 
 </div>
 
@@ -21,8 +18,15 @@ upload it as docs/demo.gif and add this line here:
 - **One-click import** of your full locker (8000+ items supported): skins, pickaxes, emotes, wraps, banners, instruments, cars, LEGO kits and more
 - **Smart sorting** by type and rarity, exactly how fortnite.gg expects it
 - **Locker comparison**: see how many items are new since your last import
+- **Account stats panel**: V-Bucks, lifetime wins, account level, season history, purchases, gifts, Save the World and Creative info, in its own tab
+- **Collection breakdown**: your owned cosmetics counted by rarity and type
+- **Selective import filter**: choose which cosmetic types, rarities and series get imported
+- **Filter presets**: save your favorite fortnite.gg filter views and reapply them in one click. Shared across Cosmetics, Locker, Most Used and Wishlist, with export/import, and saved in your browser
+- **Clickable chapter filter**: select a whole chapter of seasons at once on fortnite.gg's filter
+- **Background locker check**: get notified when you own new items since your last import
+- **Wishlist tools**: see how many wishlisted items you already own, clear the owned ones in one click, owned items glow on your wishlist page, and a shop alert when a wishlisted item is in the item shop
+- **13 languages**, auto-detected from the fortnite.gg page (English, Deutsch, Español, Español LA, Français, Italiano, 日本語, 한국어, Polski, Português BR, Русский, Türkçe, العربية)
 - **Auto-logout** after import (on by default): your Epic token is cleared automatically
-- **Two languages**: English and German, auto-detected from the fortnite.gg page
 - **Guided tour** for first-time users, restartable anytime in settings
 - **Built-in diagnostics** and a one-click debug report for easy support
 - **Update notifications** when a new version is released
