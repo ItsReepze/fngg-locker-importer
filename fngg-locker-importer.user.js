@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fortnite.gg Locker Importer
 // @namespace    https://fortnite.gg/
-// @version      4.0.2
+// @version      4.0.3
 // @description  Import your Fortnite locker to Fortnite.gg
 // @author       ItsReepze
 // @match        https://fortnite.gg/*
@@ -31,7 +31,7 @@
     'use strict';
 
     var SAC = 'Reepze';
-    var VERSION = (typeof GM_info !== 'undefined' && GM_info.script && GM_info.script.version) || '4.0.2';
+    var VERSION = (typeof GM_info !== 'undefined' && GM_info.script && GM_info.script.version) || '4.0.3';
     var GF_URL = 'https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer';
     var SESSION_TIMEOUT = 7200000;
     var POLL_INTERVAL = 3000;
@@ -140,6 +140,7 @@
             debugCopyReport: 'Copy report to clipboard', debugLastImport: '📊 Last Import', debugNoImport: 'No import data yet. Run an import to see statistics.',
             debugDiagnostics: '🔧 Diagnostics', debugRunDiag: 'Run Diagnostics', debugUnrecognized: '❓ Unrecognized Items',
             debugUnrecDesc: 'Skipped backend data (quests, tokens, schedules, vehicle parts) is summarized above. That’s normal. Anything listed below couldn’t be categorized and might be worth reporting.',
+            debugByType: '📦 Imported by type',
             debugNoData: 'No data yet.', debugRunning: 'Running...',
             diagPako: 'Compression library loaded', diagPakoBlocked: 'pako blocked, allow cdnjs.cloudflare.com',
             diagFnggLogin: 'Logged in to fortnite.gg', diagFnggNoLogin: 'Not logged in to fortnite.gg',
@@ -833,17 +834,45 @@
         }).catch(function() {});
     }
 
+    // Maps a fine-grained item type to its broad, translated category label.
+    var TYPE_CAT = {
+        outfit:'catOutfit', backpack:'catBackpack', pickaxe:'catPickaxe', glider:'catGlider', contrail:'catContrail',
+        emote:'catEmote', emoji:'catEmoji', spray:'catSpray', wrap:'catWrap', shoe:'catShoe', companion:'catCompanion',
+        banner:'catBanner', music:'catMusic', jamtrack:'catJamtrack', loadingscreen:'catLoadingscreen', toy:'catToy', aura:'catAura',
+        guitar:'catInstrument', bass:'catInstrument', drum:'catInstrument', keytar:'catInstrument', microphone:'catInstrument',
+        car:'catCar', decal:'catCar', wheel:'catCar', trail:'catCar', boost:'catCar', legokit:'catLego'
+    };
+    function typeLabel(type) {
+        var k = TYPE_CAT[type];
+        if (k) {return t(k);}
+        return type ? type.charAt(0).toUpperCase() + type.slice(1) : t('catOther');
+    }
+
     // Builds the Debug "Last Import" stats from raw counts, so it always renders in the
     // currently selected language instead of being frozen at import time.
     function renderImportStats(d) {
         d = d || {};
-        return '<strong style="color:#4ade80">✓ ' + t('impItems').replace('{n}', d.imported || 0) + '</strong><br>' +
+        var html = '<strong style="color:#4ade80">✓ ' + t('impItems').replace('{n}', d.imported || 0) + '</strong><br>' +
             (d.hasExisting ? '<span style="color:#f0db4f">★ ' + t('impNew').replace('{n}', d.newCount || 0) + ' • ' + t('impAlready').replace('{n}', d.alreadyCount || 0) + '</span><br>' : '') +
             '<span style="color:#888">' + t('impProcessed') + ': ' + (d.processed || 0) + '</span><br><br>' +
             '<strong style="color:#f0db4f">⚠ ' + t('impSkipped').replace('{n}', d.skipped || 0) + '</strong><br>' +
             '<span style="color:#888">' + t('impQuests') + ': ' + (d.quest || 0) + ' • ' + t('impVehicles') + ': ' + (d.vehicle || 0) + '<br>' +
             t('impSystem') + ': ' + (d.system || 0) + ' • ' + t('impUnrecognized') + ': ' + (d.unrecognized || 0) + '<br>' +
             t('impDuplicates') + ': ' + (d.duplicate || 0) + ' • ' + t('impInvalid') + ': ' + (d.invalid || 0) + '</span>';
+
+        if (d.byType && typeof d.byType === 'object') {
+            var byCat = {};
+            for (var ty in d.byType) { var lbl = typeLabel(ty); byCat[lbl] = (byCat[lbl] || 0) + d.byType[ty]; }
+            var parts = Object.keys(byCat).sort(function(a, b) { return byCat[b] - byCat[a]; }).map(function(l) { return l + ': ' + byCat[l]; });
+            if (parts.length) {
+                html += '<br><br><strong style="color:#4ade80">' + t('debugByType') + '</strong><br><span style="color:#888">' + parts.join(' • ') + '</span>';
+            }
+        }
+        if (d.filterActive) {
+            html += '<br><br><span style="color:#f0db4f">⚙ ' + t('importFilterActive') + '</span>' +
+                (d.filterSummary && d.filterSummary !== 'none' ? '<br><span style="color:#777;font-size:10px;font-family:monospace">' + esc(d.filterSummary) + '</span>' : '');
+        }
+        return html;
     }
 
     var statsLoaded = false;
@@ -2327,6 +2356,16 @@
             var alreadyCount = hasExisting ? totalItems - newCount : 0;
             GM_setValue('lastImportCount', String(totalItems));
 
+            // ---- diagnostics gathered for the debug panel + copy report ----
+            var byType = {};
+            for (var bt = 0; bt < items.length; bt++) { var bty = items[bt].type || 'unknown'; byType[bty] = (byType[bty] || 0) + 1; }
+            var unmappedByType = {};
+            for (var um = 0; um < unmappedItems.length; um++) { var gt = guessType(unmappedItems[um]) || 'other'; unmappedByType[gt] = (unmappedByType[gt] || 0) + 1; }
+            var fSet = getSettings();
+            var exT = fSet.importExclTypes || [], exR = fSet.importExclRarities || [], exS = fSet.importExclSeries || [];
+            var filterActive = (exT.length + exR.length + exS.length) > 0;
+            var filterSummary = filterActive ? ('excluded types=[' + exT.join(',') + '] rarities=[' + exR.join(',') + '] series=[' + exS.join(',') + ']') : 'none';
+
             var statsData = {
                 imported: totalItems,
                 hasExisting: hasExisting,
@@ -2339,7 +2378,10 @@
                 system: grouped.system,
                 unrecognized: unrecognized.length,
                 duplicate: skipped.duplicate,
-                invalid: skipped.noBid
+                invalid: skipped.noBid,
+                byType: byType,
+                filterActive: filterActive,
+                filterSummary: filterSummary
             };
             var statsHTML = renderImportStats(statsData);
 
@@ -2347,14 +2389,33 @@
                 ? unrecognized.join('\n')
                 : t('impNothingUnrec');
 
-            var report = 'FNGG Locker Importer v' + VERSION + '\n' +
+            var kvList = function(o) { return Object.keys(o).sort(function(a, b) { return o[b] - o[a]; }).map(function(k) { return k + '=' + o[k]; }).join(', ') || '-'; };
+            var report =
+                'FNGG Locker Importer v' + VERSION + '\n' +
                 'Date: ' + new Date().toISOString() + '\n' +
-                'Browser: ' + navigator.userAgent + '\n\n' +
-                'Imported: ' + totalItems + ' / Processed: ' + totalProcessed + '\n' +
-                'Skipped: quests=' + grouped.quest + ', vehicles=' + grouped.vehicle + ', system=' + grouped.system + ', duplicates=' + skipped.duplicate + ', invalid=' + skipped.noBid + '\n\n' +
-                (hasExisting ? 'Locker compare: ' + newCount + ' new, ' + alreadyCount + ' existing\n' : '') +
-                'Skipped templateId types: ' + Object.keys(prefixStats).map(function(k) { return k + '=' + prefixStats[k]; }).join(', ') + '\n\n' +
-                'Unrecognized (' + unrecognized.length + '):\n' + (unrecognized.join('\n') || '-');
+                'Language: ' + LANG + '\n' +
+                'Browser: ' + navigator.userAgent + '\n' +
+                'Account created: ' + created + '\n' +
+                '\n--- SOURCES ---\n' +
+                'fortnite.gg item list: ' + Object.keys(fngg).length + ' entries' + (Object.keys(fngg).length < 5000 ? '  <-- LOW, list may have failed to load!' : '') + '\n' +
+                'Epic athena (BR) items: ' + Object.keys(ai).length + '\n' +
+                'Epic common_core items: ' + Object.keys(ci).length + '\n' +
+                '\n--- IMPORT FILTER ---\n' +
+                (filterActive ? 'ACTIVE - the following are EXCLUDED from import: ' + filterSummary : 'none (everything is allowed to import)') + '\n' +
+                '\n--- RESULT ---\n' +
+                'Imported: ' + totalItems + '\n' +
+                'Processed: ' + totalProcessed + '\n' +
+                (hasExisting ? 'Locker compare: ' + newCount + ' new, ' + alreadyCount + ' already in locker\n' : '') +
+                'Imported by type: ' + kvList(byType) + '\n' +
+                '\n--- SKIPPED ---\n' +
+                'Not in fortnite.gg list (no mapping): ' + skipped.noMapping + '\n' +
+                '  categorized: quests=' + grouped.quest + ', vehicles=' + grouped.vehicle + ', system=' + grouped.system + ', unrecognized=' + unrecognized.length + '\n' +
+                '  no-mapping by guessed cosmetic type: ' + kvList(unmappedByType) + '\n' +
+                'Duplicates (same fortnite.gg id): ' + skipped.duplicate + '\n' +
+                'Invalid (no backend id): ' + skipped.noBid + '\n' +
+                'Skipped templateId prefixes: ' + kvList(prefixStats) + '\n' +
+                '\n--- ALL UNMAPPED BACKEND IDS (' + unmappedItems.length + ') ---\n' +
+                (unmappedItems.slice().sort().join('\n') || '-');
 
             var statsEl = $('debug-stats');
             if (statsEl) {statsEl.innerHTML = statsHTML;}

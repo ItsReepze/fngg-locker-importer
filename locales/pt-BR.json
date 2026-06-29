@@ -150,6 +150,7 @@
   "debugRunDiag": "Executar diagnóstico",
   "debugUnrecognized": "❓ Itens não reconhecidos",
   "debugUnrecDesc": "Os dados de backend ignorados (missões, tokens, agendas, peças de veículos) estão resumidos acima. Isso é normal. O que está listado abaixo não pôde ser categorizado e pode valer a pena reportar.",
+  "debugByType": "📦 Importados por tipo",
   "debugNoData": "Ainda não há dados.",
   "debugRunning": "Executando...",
   "diagPako": "Biblioteca de compressão carregada",

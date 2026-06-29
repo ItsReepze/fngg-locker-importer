@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.0.3 (2026-06-29)
+- Improved: the Debug console now shows an "Imported by type" breakdown and a clear warning when an import filter is active, so it is obvious why an item count might look low
+- Improved: the "Copy report" button now includes full diagnostics — fortnite.gg item-list size, Epic profile item counts, active import filter, imported-by-type counts, every skip category, and the complete list of unmapped backend IDs
+
 ## v4.0.2 (2026-06-29)
 - Fixed: the Debug console's "Last Import" stats now follow the selected language instead of staying frozen in whatever language was active during the import
 - Improved: the script version is read from the userscript header in a single place, so the footer, the diagnostics report and the update check can never show a stale number again

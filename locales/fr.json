@@ -150,6 +150,7 @@
   "debugRunDiag": "Lancer le diagnostic",
   "debugUnrecognized": "❓ Objets non reconnus",
   "debugUnrecDesc": "Les données backend ignorées (quêtes, jetons, plannings, pièces de véhicules) sont résumées ci-dessus. C'est normal. Ce qui est listé ci-dessous n'a pas pu être catégorisé et mérite peut-être un signalement.",
+  "debugByType": "📦 Importé par type",
   "debugNoData": "Aucune donnée pour l'instant.",
   "debugRunning": "En cours...",
   "diagPako": "Bibliothèque de compression chargée",

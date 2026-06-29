@@ -150,6 +150,7 @@
   "debugRunDiag": "Tanılamayı çalıştır",
   "debugUnrecognized": "❓ Tanınmayan öğeler",
   "debugUnrecDesc": "Atlanan arka uç verileri (görevler, jetonlar, programlar, araç parçaları) yukarıda özetlenmiştir. Bu normaldir. Aşağıda listelenenler kategorize edilemedi ve bildirmeye değer olabilir.",
+  "debugByType": "📦 Türe göre içe aktarıldı",
   "debugNoData": "Henüz veri yok.",
   "debugRunning": "Çalışıyor...",
   "diagPako": "Sıkıştırma kitaplığı yüklendi",

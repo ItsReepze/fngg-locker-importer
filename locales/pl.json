@@ -150,6 +150,7 @@
   "debugRunDiag": "Uruchom diagnostykę",
   "debugUnrecognized": "❓ Nierozpoznane przedmioty",
   "debugUnrecDesc": "Pominięte dane backendu (zadania, tokeny, harmonogramy, części pojazdów) są podsumowane powyżej. To normalne. To, co jest poniżej, nie zostało sklasyfikowane i może warto to zgłosić.",
+  "debugByType": "📦 Zaimportowano wg typu",
   "debugNoData": "Brak danych.",
   "debugRunning": "Trwa...",
   "diagPako": "Biblioteka kompresji załadowana",

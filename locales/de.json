@@ -150,6 +150,7 @@
   "debugRunDiag": "Diagnose starten",
   "debugUnrecognized": "❓ Nicht erkannte Items",
   "debugUnrecDesc": "Übersprungene Backend-Daten (Quests, Tokens, Zeitpläne, Fahrzeugteile) sind oben zusammengefasst. Das ist normal. Was unten steht, konnte nicht kategorisiert werden und ist evtl. einen Bericht wert.",
+  "debugByType": "📦 Importiert nach Typ",
   "debugNoData": "Noch keine Daten.",
   "debugRunning": "Läuft...",
   "diagPako": "Kompressions-Bibliothek geladen",
