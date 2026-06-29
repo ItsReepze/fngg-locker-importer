@@ -1,7 +1,15 @@
 # Changelog
 
+## v4.0.2 (2026-06-29)
+- Fixed: the Debug console's "Last Import" stats now follow the selected language instead of staying frozen in whatever language was active during the import
+- Improved: the script version is read from the userscript header in a single place, so the footer, the diagnostics report and the update check can never show a stale number again
+- Improved: the update notice clears itself automatically once you are on the latest version, and ignores malformed version data
+
+
 ## v4.0.1 (2026-06-17)
-- Fixed: a few remaining interface strings (the Epic API error message and the share "Copy" tooltip) are now translated in every language
+- Fixed: language files now refresh automatically after an update, so the interface is no longer stuck on a previously cached translation
+- Fixed: the Epic API error message and the share "Copy" tooltip are now translated in every language
+- Fixed: the version number shown in the panel footer
 
 
 ## v4.0 (2026-06-17): Chapter Update
@@ -75,15 +83,4 @@ The biggest release so far.
 ## v3.2
 - Fixed: Debug panel no longer opens by default for new users
 - Fixed: Login polling now times out cleanly instead of running forever
-- Fixed: Cosmetics cache no longer breaks when the API is down
-- New: Clear error message when the compression library is blocked
-- New: Fallback link when the popup blocker stops the Epic login tab
-
-## v3.1
-- New: Auto-logout after import (default on, user choice is remembered)
-- New: Debug console with import statistics
-- Fixed: Creator code is only set after explicit user consent
-- Improved: General code cleanup and performance
-
-## v3.0
-- Initial public release with numeric sorting and compressed import URLs
+- Fixed: Cosmetics cache 

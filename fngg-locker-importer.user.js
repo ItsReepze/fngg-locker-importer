@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fortnite.gg Locker Importer
 // @namespace    https://fortnite.gg/
-// @version      4.0.1
+// @version      4.0.2
 // @description  Import your Fortnite locker to Fortnite.gg
 // @author       ItsReepze
 // @match        https://fortnite.gg/*
@@ -31,7 +31,7 @@
     'use strict';
 
     var SAC = 'Reepze';
-    var VERSION = '3.8';
+    var VERSION = (typeof GM_info !== 'undefined' && GM_info.script && GM_info.script.version) || '4.0.2';
     var GF_URL = 'https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer';
     var SESSION_TIMEOUT = 7200000;
     var POLL_INTERVAL = 3000;
@@ -172,6 +172,10 @@
         }
     };
 
+    // =======================================================================
+    //  LOCALIZATION (i18n)
+    // =======================================================================
+
     function normLang(raw) {
         if (!raw) {return null;}
         var lower = String(raw).trim().toLowerCase();
@@ -270,6 +274,10 @@
     var sessionChecking = false;
     var cosmeticsData = null;
 
+    // =======================================================================
+    //  SETTINGS & SESSION
+    // =======================================================================
+
     function getSettings() {
         try { return JSON.parse(GM_getValue('fngg_settings', '{}')); }
         catch(e) { return {}; }
@@ -303,6 +311,10 @@
     }
 
     function $(id) { return document.getElementById(id); }
+
+    // =======================================================================
+    //  UTILITIES (escape, http, delay)
+    // =======================================================================
 
     function esc(s) {
         return String(s == null ? '' : s).replace(/[&<>"']/g, function(ch) {
@@ -360,7 +372,7 @@
 
     function storeLocale(lang, data) {
         I18N[lang] = data;
-        try { GM_setValue('locale_' + lang, JSON.stringify({ ts: Date.now(), data: data })); } catch(e) {}
+        try { GM_setValue('locale_' + lang, JSON.stringify({ v: VERSION, ts: Date.now(), data: data })); } catch(e) {}
     }
 
     function bgRefreshLocale(lang) {
@@ -373,16 +385,21 @@
         if (INLINE_LANGS.indexOf(lang) !== -1 || I18N[lang]) {return;}
         var c = null;
         try { c = JSON.parse(GM_getValue('locale_' + lang, 'null')); } catch(e) {}
-        if (c && c.data && typeof c.data === 'object') {
+        if (c && c.data && typeof c.data === 'object' && c.v === VERSION) {
             I18N[lang] = c.data;
             if (!c.ts || Date.now() - c.ts > LOCALES_CACHE_TTL) {bgRefreshLocale(lang);}
             return;
         }
         try {
             var r = await fetchLocale(lang);
-            if (r.status === 200 && r.data && typeof r.data === 'object') {storeLocale(lang, r.data);}
+            if (r.status === 200 && r.data && typeof r.data === 'object') { storeLocale(lang, r.data); return; }
         } catch(e) {}
+        if (c && c.data && typeof c.data === 'object') {I18N[lang] = c.data;}
     }
+
+    // =======================================================================
+    //  CHAPTER / SEASON FILTERS
+    // =======================================================================
 
     function toggleChapter(inner, chapter) {
         var sel = '.filter-select-btn[data-key="season"][data-chapter="' + chapter + '"]';
@@ -453,6 +470,10 @@
     var CAT_LABEL = { outfit:'catOutfit', backpack:'catBackpack', pickaxe:'catPickaxe', glider:'catGlider', contrail:'catContrail', emote:'catEmote', emoji:'catEmoji', spray:'catSpray', wrap:'catWrap', banner:'catBanner', loadingscreen:'catLoadingscreen', music:'catMusic', jamtrack:'catJamtrack', instrument:'catInstrument', car:'catCar', lego:'catLego', toy:'catToy', companion:'catCompanion', shoe:'catShoe', aura:'catAura' };
     var RAR_LABEL = { common:'rarCommon', uncommon:'rarUncommon', rare:'rarRare', epic:'rarEpic', legendary:'rarLegendary', mythic:'rarMythic' };
     var SERIES_LABEL = { marvel:'Marvel', dc:'DC', starwars:'Star Wars', gaming:'Gaming Legends', icon:'Icon Series', dark:'DARK', frozen:'Frozen', lava:'Lava', shadow:'Shadow', slurp:'Slurp', cube:'Cube' };
+    // =======================================================================
+    //  ITEM PROCESSING & IMPORT FILTER
+    // =======================================================================
+
     function catOf(type) { return TYPE_TO_CAT[type] || 'unknown'; }
     function rarTierOf(it) {
         var r = it.rarity || 'common';
@@ -744,6 +765,10 @@
     `);
 
     var btnText = t('importLocker');
+    // =======================================================================
+    //  UI HELPERS (status, toast, modal, update check)
+    // =======================================================================
+
     function setStatus(txt) {
         btnText = txt;
         var btn = $('ibtn');
@@ -784,18 +809,41 @@
         foot.appendChild(a);
     }
 
+    function removeUpdateHint() {
+        var a = $('fngg-upd');
+        if (a && a.parentNode) {a.parentNode.removeChild(a);}
+    }
+
+    function validVersion(v) { return typeof v === 'string' && /^\d+(\.\d+)*$/.test(v); }
+
     function checkForUpdate() {
-        if (isNewerVersion(GM_getValue('latestVersion', '0'), VERSION)) {showUpdateHint();}
+        var cached = GM_getValue('latestVersion', '0');
+        if (validVersion(cached) && isNewerVersion(cached, VERSION)) {showUpdateHint();}
         var last = parseInt(GM_getValue('lastUpdateCheck', '0'), 10) || 0;
         if (Date.now() - last < UPDATE_CHECK_INTERVAL) {return;}
         GM_setValue('lastUpdateCheck', String(Date.now()));
         http('GET', 'https://greasyfork.org/scripts/563780/code/script.meta.js').then(function(r) {
             if (r.status !== 200 || typeof r.data !== 'string') {return;}
             var m = r.data.match(/@version\s+([\d.]+)/);
-            if (!m) {return;}
+            if (!m || !validVersion(m[1])) {return;}
             GM_setValue('latestVersion', m[1]);
+            // Show the hint only when a newer version really exists; otherwise clear any stale hint.
             if (isNewerVersion(m[1], VERSION)) {showUpdateHint();}
+            else {removeUpdateHint();}
         }).catch(function() {});
+    }
+
+    // Builds the Debug "Last Import" stats from raw counts, so it always renders in the
+    // currently selected language instead of being frozen at import time.
+    function renderImportStats(d) {
+        d = d || {};
+        return '<strong style="color:#4ade80">✓ ' + t('impItems').replace('{n}', d.imported || 0) + '</strong><br>' +
+            (d.hasExisting ? '<span style="color:#f0db4f">★ ' + t('impNew').replace('{n}', d.newCount || 0) + ' • ' + t('impAlready').replace('{n}', d.alreadyCount || 0) + '</span><br>' : '') +
+            '<span style="color:#888">' + t('impProcessed') + ': ' + (d.processed || 0) + '</span><br><br>' +
+            '<strong style="color:#f0db4f">⚠ ' + t('impSkipped').replace('{n}', d.skipped || 0) + '</strong><br>' +
+            '<span style="color:#888">' + t('impQuests') + ': ' + (d.quest || 0) + ' • ' + t('impVehicles') + ': ' + (d.vehicle || 0) + '<br>' +
+            t('impSystem') + ': ' + (d.system || 0) + ' • ' + t('impUnrecognized') + ': ' + (d.unrecognized || 0) + '<br>' +
+            t('impDuplicates') + ': ' + (d.duplicate || 0) + ' • ' + t('impInvalid') + ': ' + (d.invalid || 0) + '</span>';
     }
 
     var statsLoaded = false;
@@ -853,6 +901,10 @@
         var open = $('fngg-stats') && $('fngg-stats').classList.contains('show');
         toggleStats(!open);
     }
+    // =======================================================================
+    //  FILTER PRESETS
+    // =======================================================================
+
     function pageKey() {
         var seg = location.pathname.replace(/^\/+/, '').split('/')[0].toLowerCase();
         return seg || 'home';
@@ -1342,6 +1394,10 @@
         statsLoaded = false;
         loadAccountStats();
     }
+    // =======================================================================
+    //  WISHLIST TOOLS
+    // =======================================================================
+
     function markWishlistOwned() {
         if (location.pathname.toLowerCase().indexOf('/wishlist') === -1) {return;}
         var lk = (typeof unsafeWindow !== 'undefined' && unsafeWindow.LockerItems) ? unsafeWindow.LockerItems : window.LockerItems;
@@ -1385,6 +1441,10 @@
         banner.innerHTML = '⭐ ' + esc(t('shopWishlist').replace('{n}', n));
     }
 
+    // =======================================================================
+    //  ONBOARDING TOUR
+    // =======================================================================
+
     function endTour() {
         saveSetting('onboarded', true);
         var el = $('fngg-onb');
@@ -1423,6 +1483,10 @@
             setTimeout(endTour, 6000);
         }
     }
+
+    // =======================================================================
+    //  UI RENDERING & PANEL
+    // =======================================================================
 
     function updateUI() {
         updateUIInner();
@@ -1862,7 +1926,7 @@
                 try {
                     var data = JSON.parse(debugData);
                     var statsEl = $('debug-stats');
-                    if (statsEl) {statsEl.innerHTML = data.stats || t('debugNoImport');}
+                    if (statsEl) {statsEl.innerHTML = data.data ? renderImportStats(data.data) : (data.stats || t('debugNoImport'));}
                     var unmappedEl = $('debug-unmapped');
                     if (unmappedEl) {unmappedEl.textContent = data.unmapped || t('debugNoData');}
                 } catch(e) {}
@@ -1928,6 +1992,10 @@
         sessionChecking = false;
         updateUI();
     }
+
+    // =======================================================================
+    //  ACCOUNT STATS
+    // =======================================================================
 
     function fetchCurrentSkin() {
         if (!session) {return;}
@@ -2009,6 +2077,10 @@
             }
         } catch(e) {}
     }
+
+    // =======================================================================
+    //  AUTH / SESSION LOGOUT
+    // =======================================================================
 
     function cancelLogin() {
         if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
@@ -2134,6 +2206,10 @@
     }
 
     var bgTimer = null;
+    // =======================================================================
+    //  BACKGROUND LOCKER CHECK
+    // =======================================================================
+
     function scheduleBgCheck() {
         if (bgTimer) { clearInterval(bgTimer); bgTimer = null; }
         var mins = parseInt(getSettings().bgInterval, 10); if (!(mins >= 1)) {mins = 30;}
@@ -2251,14 +2327,21 @@
             var alreadyCount = hasExisting ? totalItems - newCount : 0;
             GM_setValue('lastImportCount', String(totalItems));
 
-            var statsHTML =
-                '<strong style="color:#4ade80">✓ ' + t('impItems').replace('{n}', totalItems) + '</strong><br>' +
-                (hasExisting ? '<span style="color:#f0db4f">★ ' + t('impNew').replace('{n}', newCount) + ' \u2022 ' + t('impAlready').replace('{n}', alreadyCount) + '</span><br>' : '') +
-                '<span style="color:#888">' + t('impProcessed') + ': ' + totalProcessed + '</span><br><br>' +
-                '<strong style="color:#f0db4f">\u26a0 ' + t('impSkipped').replace('{n}', skipped.noMapping) + '</strong><br>' +
-                '<span style="color:#888">' + t('impQuests') + ': ' + grouped.quest + ' \u2022 ' + t('impVehicles') + ': ' + grouped.vehicle + '<br>' +
-                t('impSystem') + ': ' + grouped.system + ' \u2022 ' + t('impUnrecognized') + ': ' + unrecognized.length + '<br>' +
-                t('impDuplicates') + ': ' + skipped.duplicate + ' \u2022 ' + t('impInvalid') + ': ' + skipped.noBid + '</span>';
+            var statsData = {
+                imported: totalItems,
+                hasExisting: hasExisting,
+                newCount: newCount,
+                alreadyCount: alreadyCount,
+                processed: totalProcessed,
+                skipped: skipped.noMapping,
+                quest: grouped.quest,
+                vehicle: grouped.vehicle,
+                system: grouped.system,
+                unrecognized: unrecognized.length,
+                duplicate: skipped.duplicate,
+                invalid: skipped.noBid
+            };
+            var statsHTML = renderImportStats(statsData);
 
             var unmappedHTML = unrecognized.length > 0
                 ? unrecognized.join('\n')
@@ -2278,7 +2361,7 @@
             var unmappedEl = $('debug-unmapped');
             if (unmappedEl) {unmappedEl.textContent = unmappedHTML;}
 
-            GM_setValue('debugData', JSON.stringify({ stats: statsHTML, unmapped: unmappedHTML, report: report }));
+            GM_setValue('debugData', JSON.stringify({ data: statsData, unmapped: unmappedHTML, report: report }));
 
             setStatus(t('sorting'));
             items.sort(function(a, b) {
