@@ -5,7 +5,7 @@
 **Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with one click.**
 
 [![Install](https://img.shields.io/badge/Install-Greasyfork-670000?style=for-the-badge)](https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer)
-[![Version](https://img.shields.io/badge/Version-4.0.3-f0db4f?style=for-the-badge)](https://github.com/ItsReepze/fngg-locker-importer/releases)
+[![Version](https://img.shields.io/badge/Version-4.1.0-f0db4f?style=for-the-badge)](https://github.com/ItsReepze/fngg-locker-importer/releases)
 [![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
 
 No downloads. No .exe files. No password sharing. Runs entirely in your browser.
@@ -30,7 +30,7 @@ No downloads. No .exe files. No password sharing. Runs entirely in your browser.
 - **Guided tour** for first-time users, restartable anytime in settings
 - **Built-in diagnostics** and a one-click debug report for easy support
 - **Update notifications** when a new version is released
-- **100% free.** If it saved you time, you can support development with Creator Code **REEPZE** (always optional, never automatic)
+- **100% free**, no catch
 
 ## 🚀 Installation
 
@@ -62,7 +62,7 @@ Yes. This was the top priority in every design decision:
 | Download required | ❌ None, runs in your browser | ✔️ You run a program on your PC |
 | Source code readable | ✔️ Every line, unobfuscated | ❓ Often compiled or obfuscated |
 | Password handling | ✔️ Never sees it, login happens on epicgames.com | ❓ Varies |
-| Account permissions | ✔️ Reads data only. The single write action: setting the creator code, only with your explicit consent | ❓ Varies |
+| Account permissions | ✔️ Reads data only, no write actions on your Epic account | ❓ Varies |
 | Data collection | ✔️ None, nothing leaves your browser | ❓ Varies |
 | Token lifetime | ✔️ Expires after ~2 hours, auto-logout by default | ❓ Varies |
 
@@ -111,9 +111,7 @@ Contributions are welcome! The codebase is a single readable userscript file.
 
 ## ❤️ Support
 
-This tool is and stays free. If it saved you time, you can support development by using Creator Code **REEPZE** in the Fortnite Item Shop. It costs you nothing extra, and you can change or remove the code in-game anytime.
-
-A ⭐ on this repository and a [review on Greasyfork](https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer/feedback) also help a lot.
+This tool is and stays free. A ⭐ on this repository and a [review on Greasyfork](https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer/feedback) help a lot.
 
 ## 📜 License & Disclaimer
 

@@ -1,8 +1,13 @@
 # Changelog
 
+## v4.1.0 (2026-08-04)
+- Removed: the Creator Code system. The code is not active anymore, so the support prompt after an import, the code button in the panel footer, the "Support me" info section, the Creator Code part of the account stats and the hidden dev tool are all gone
+- Improved: with the code gone the script no longer writes anything to your Epic account at all. It only reads data now
+- Cleaned: leftover Creator Code strings removed from all 13 languages
+
 ## v4.0.3 (2026-06-29)
 - Improved: the Debug console now shows an "Imported by type" breakdown and a clear warning when an import filter is active, so it is obvious why an item count might look low
-- Improved: the "Copy report" button now includes full diagnostics — fortnite.gg item-list size, Epic profile item counts, active import filter, imported-by-type counts, every skip category, and the complete list of unmapped backend IDs
+- Improved: the "Copy report" button now includes full diagnostics: fortnite.gg item-list size, Epic profile item counts, active import filter, imported-by-type counts, every skip category, and the complete list of unmapped backend IDs
 
 ## v4.0.2 (2026-06-29)
 - Fixed: the Debug console's "Last Import" stats now follow the selected language instead of staying frozen in whatever language was active during the import

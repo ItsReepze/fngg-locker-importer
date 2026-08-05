@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fortnite.gg Locker Importer
 // @namespace    https://fortnite.gg/
-// @version      4.0.3
+// @version      4.1.0
 // @description  Import your Fortnite locker to Fortnite.gg
 // @author       ItsReepze
 // @match        https://fortnite.gg/*
@@ -30,8 +30,7 @@
 (function() {
     'use strict';
 
-    var SAC = 'Reepze';
-    var VERSION = (typeof GM_info !== 'undefined' && GM_info.script && GM_info.script.version) || '4.0.3';
+    var VERSION = (typeof GM_info !== 'undefined' && GM_info.script && GM_info.script.version) || '4.1.0';
     var GF_URL = 'https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer';
     var SESSION_TIMEOUT = 7200000;
     var POLL_INTERVAL = 3000;
@@ -61,8 +60,8 @@
             toMyLocker: 'To My Locker', openLocker: 'Open your locker to start', lockerImporter: 'Locker Importer',
             desktopOnly: 'Desktop Only', notSupportedMobile: 'Not supported on mobile',
             mobileDesc: 'This tool needs a desktop browser (Chrome, Firefox or Edge) with the Tampermonkey extension installed.',
-            freeTool: 'Free tool', creatorCode: 'Creator Code', share: '\ud83d\udce4 Share',
-            copyCode: 'Click to copy', copyLink: 'Copy install link',
+            freeTool: 'Free tool', share: '\ud83d\udce4 Share',
+            copyLink: 'Copy install link',
             tryAgain: 'Try again', connecting: 'Connecting...', processing: 'Processing...', sorting: 'Sorting...',
             loadingCosmetics: 'Loading cosmetics', loadingLocker: 'Loading locker...', loadingBanners: 'Loading banners...',
             gettingItems: 'Getting fortnite.gg items...', checkingFngg: 'Checking fortnite.gg login...', building: 'Building import data...',
@@ -73,15 +72,12 @@
             fnggUnreachable: 'fortnite.gg not reachable', fnggBlocked: 'fortnite.gg blocked the request (403). On Chrome, enable Developer Mode in Tampermonkey, or use Firefox. See the GitHub README.', noItems: 'No items found',
             lockerTooLarge: 'Locker too large', pakoBlocked: 'Compression library blocked. Allow cdnjs.cloudflare.com and reload.',
             importFailed: 'Import failed, please try again',
-            codeCopied: 'Code copied! \u2764\ufe0f', linkCopied: 'Install link copied, thanks for sharing! \u2764\ufe0f',
-            couldntCopy: 'Couldn\u2019t copy', reportCopied: 'Report copied!', thanksHeart: 'Thanks! \u2764\ufe0f', couldntSetCode: 'Couldn\u2019t set code',
+            linkCopied: 'Install link copied, thanks for sharing! \u2764\ufe0f',
+            couldntCopy: 'Couldn\u2019t copy', reportCopied: 'Report copied!',
             settings: 'Settings', settingsGeneral: 'General', autoLogoutLbl: 'Auto-logout after import', autoLogoutDesc: 'Clears your Epic token once the import is done (recommended)',
             languageLbl: 'Language', langAuto: 'Auto', close: 'Close',
             tokenLeft: 'left',
             modalReady: ' items are ready to import.',
-            modalSupport: 'This tool is 100% free. If it saved you time, you can support development by setting Creator Code <strong>{SAC}</strong>. It costs you nothing extra.',
-            modalChange: 'You can change or remove the code in-game anytime.',
-            useCode: '\u2764\ufe0f Use code & import', withoutCode: 'Import without code',
             review: 'Enjoying this tool? A quick review on Greasyfork helps a lot \u2b50',
             updateAvail: '\u2b06 Update', updateTitle: 'A new version is available',
             warnFewMatches: 'Warning: very few items matched. The script may need an update. Check Greasyfork!',
@@ -93,13 +89,10 @@
             infoHow: '1. Click "Connect Epic Account"<br>2. Login on Epic\u2019s website<br>3. Click "Import Locker"<br>4. Done! Your locker is updated.',
             infoTokenH: '\ud83d\udd11 Token Info',
             infoToken: 'The access token expires after ~2 hours. After that, simply reconnect. We never store your password.',
-            infoSupportH: '\u2764\ufe0f Support me',
-            infoSupport: 'If you like this tool, use Creator Code <strong style="color:#f0db4f">{SAC}</strong> in the Fortnite Item Shop!',
             thanksH: '\ud83d\ude4f Thanks for the help',
             alreadyInLocker: 'already in locker',
             totalWord: 'total', addedWord: 'added',
             continueBtn: 'Continue',
-            thanksSupport: 'Thanks for supporting with Creator Code <strong>{SAC}</strong>! \u2764\ufe0f',
             shareLocker: 'Share your locker',
             shareText1: 'Check out my Fortnite locker! \ud83c\udf92 {N} items:', shareText2: 'Want to import your locker too? Free, one click:',
             copiedShort: 'Copied!',
@@ -149,9 +142,6 @@
             diagFnggErr: 'fortnite.gg API error', diagFnggUnreach: 'fortnite.gg API unreachable',
             diagApiOk: 'fortnite-api.com reachable', diagApiErr: 'fortnite-api.com error', diagApiUnreach: 'fortnite-api.com unreachable',
             diagEpicOk: 'Epic API reachable', diagEpicErr: 'Epic API error', diagEpicUnreach: 'Epic API unreachable',
-            ccTitle: '🔧 Set Creator Code', ccDesc: 'Dev tool. Sets any creator code on your account via Epic’s API. Leave empty to remove the current code.',
-            ccPlaceholder: 'Creator code...', ccApply: 'Apply', ccChecking: 'Checking code...', ccRemoving: 'Removing code...',
-            ccActive: '✓ Code "{code}" is now active.', ccRemoved: '✓ Code removed.', ccFailed: '✗ Code does not exist or could not be set.',
             statsClickLoad: 'Click your name to load.',
             statsLoadingAccount: 'Loading account data...', statsErrProfile: 'Could not load profile ({n}).', statsErrRead: 'Could not read profile.',
             statsLoadingBR: 'Loading battle royale stats...', statsLoadingItems: 'Loading item names...', statsUnknownItem: 'Unknown item',
@@ -167,7 +157,6 @@
             statsGifts: '🎁 Gifts', statsSent: 'Sent', statsReceived: 'Received', statsReceivingDisabled: 'Receiving disabled',
             statsSTW: '🏗️ Save the World', statsOwned: 'Owned', statsFoundersPack: 'Founder’s Pack', statsCommanderLevel: 'Commander level', statsResearchPower: 'Research power', statsCollectionBook: 'Collection book', statsNotOwned: 'Not owned',
             statsCreative: '🎨 Creative', statsOwnIslands: 'Own islands',
-            statsCreatorCodeH: '⭐ Creator Code', statsThankYou: '❤️ Thank you for the support!', statsSupportPitch: 'Enjoying this tool? Code {code} supports development ❤️', statsNoneSet: 'None set.',
             statsFootnote: '* Epic only keeps a partial purchase history in the profile. Real totals can be higher. Console purchases and ban history are not exposed by this API, only the current ban status.',
             statsErrLoad: 'Could not load account data.'
         }
@@ -215,7 +204,7 @@
 
     function t(k) {
         var s = (I18N[LANG] && I18N[LANG][k]) || I18N.en[k] || k;
-        return s.replace('{SAC}', SAC.toUpperCase());
+        return s;
     }
     var switchToken = 'OThmN2U0MmMyZTNhNGY4NmE3NGViNDNmYmI0MWVkMzk6MGEyNDQ5YTItMDAxYS00NTFlLWFmZWMtM2U4MTI5MDFjNGQ3';
     var epicBase = 'https://account-public-service-prod.ol.epicgames.com';
@@ -701,9 +690,6 @@
         .sicon{font-size:40px;margin-bottom:12px}
         .stxt2{font-size:13px;color:#aaa;line-height:1.6;margin-bottom:20px}
         .stxt2 strong{color:#fff}
-        .btn-sac{background:linear-gradient(135deg,#f0db4f 0%,#e6c93a 100%);color:#000;margin-bottom:8px}
-        .btn-skip{background:0;border:0;color:#666;font-size:12px;padding:8px;cursor:pointer;width:100%;transition:color .2s}
-        .btn-skip:hover{color:#999}
         #fngg-toast{position:fixed;bottom:20px;left:20px;background:rgba(26,26,29,.95);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 20px;font-size:13px;font-weight:600;color:#fff;z-index:99999999;transform:translateY(100px);opacity:0;transition:all .25s;box-shadow:0 8px 24px rgba(0,0,0,.3);font-family:fn,sans-serif;text-transform:uppercase;letter-spacing:.3px}
         #fngg-toast.show{transform:translateY(0);opacity:1}
         #fngg-toast.ok{border-left:3px solid #22c55e}
@@ -1358,17 +1344,6 @@
                 H += '<div class="ssec"><h4>'+t('statsCreative')+'</h4><p>'+t('statsOwnIslands')+': ' + creativeIslands + '</p></div>';
             }
 
-            var sacNow = (at.mtx_affiliate || '').trim();
-            var sacLine;
-            if (sacNow.toLowerCase() === SAC.toLowerCase()) {
-                sacLine = esc(sacNow) + ' <span style="color:#4ade80">'+t('statsThankYou')+'</span>';
-            } else if (sacNow) {
-                sacLine = esc(sacNow) + '<br><span class="dim">'+t('statsSupportPitch').replace('{code}', SAC.toUpperCase())+'</span>';
-            } else {
-                sacLine = '<span class="dim">'+t('statsNoneSet')+' '+t('statsSupportPitch').replace('{code}', SAC.toUpperCase())+'</span>';
-            }
-            H += '<div class="ssec"><h4>'+t('statsCreatorCodeH')+'</h4><p>' + sacLine + '</p></div>';
-
             H += '<p style="margin:6px 0 0;font-size:9px;color:#555;line-height:1.4">'+t('statsFootnote')+'</p>';
 
             el.innerHTML = H;
@@ -1581,7 +1556,7 @@
         var p = document.createElement('div');
         p.id = 'fngg-panel';
         var hdrBtns = (IS_LOCKER && !IS_MOBILE ? '<button class="fngg-hbtn" id="dbtn" title="'+t('debugTitle')+'">🐛</button>' : '') + (!IS_MOBILE ? '<button class="fngg-hbtn" id="setbtn" title="'+t('settings')+'">⚙</button>' : '') + '<button class="fngg-hbtn" id="ibtn2" title="'+t('infoTitle')+'">?</button>';
-        p.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>'+t('panelTitle')+'</span></div><div class="fngg-btns">'+hdrBtns+'</div></div><div class="body"><div id="usec"></div><div id="asec"></div><div id="fngg-foot"><span>'+t('freeTool')+' · '+t('creatorCode')+' <b id="ccbtn" title="'+t('copyCode')+'">'+SAC.toUpperCase()+'</b></span><a id="sharebtn" title="'+t('copyLink')+'">'+t('share')+'</a></div></div>';
+        p.innerHTML = '<div class="fngg-hdr"><div class="fngg-brand"><img src="'+LOGO+'"><span>'+t('panelTitle')+'</span></div><div class="fngg-btns">'+hdrBtns+'</div></div><div class="body"><div id="usec"></div><div id="asec"></div><div id="fngg-foot"><span>'+t('freeTool')+'</span><a id="sharebtn" title="'+t('copyLink')+'">'+t('share')+'</a></div></div>';
         document.body.appendChild(p);
 
         var ip = document.createElement('div');
@@ -1593,7 +1568,6 @@
             '<div class="isec"><h3>'+t('infoHowH')+'</h3><p>'+t('infoHow')+'</p></div>' +
             '<div class="isec"><h3>'+t('infoSafeH')+'</h3><p>'+t('infoSafe')+'</p></div>' +
             '<div class="isec"><h3>'+t('infoTokenH')+'</h3><p>'+t('infoToken')+'</p></div>' +
-            '<div class="isec"><h3>'+t('infoSupportH')+'</h3><p>'+t('infoSupport')+'</p></div>' +
             '</div>' +
             '<button class="btn btn-x" id="infoclose" style="margin-top:8px">'+t('close')+'</button></div>';
         document.body.appendChild(ip);
@@ -1617,7 +1591,7 @@
             var sm = document.createElement('div');
             sm.id = 'smodal';
             sm.className = 'fngg-m';
-            sm.innerHTML = '<div class="mbox"><div class="sicon">🎉</div><div class="mtitle">'+t('done')+'</div><div class="stxt2"><span id="icnt"></span>'+t('modalReady')+'<span id="icompare" style="display:none;font-size:12px"></span><span id="sacpitch"><br><br>'+t('modalSupport')+'<br><br><span style="color:#555;font-size:11px;">'+t('modalChange')+'</span></span><span id="sacthanks" style="display:none"><br><br>'+t('thanksSupport')+'</span></div><button class="btn btn-sac" id="ybtn">'+t('useCode')+'</button><button class="btn-skip" id="nbtn">'+t('withoutCode')+'</button><button class="btn btn-g" id="contbtn" style="display:none">'+t('continueBtn')+'</button><div style="margin-top:12px"><div style="font-size:10px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">\ud83d\udce4 '+t('shareLocker')+'</div><div style="display:flex;gap:6px;justify-content:center"><button class="fngg-hbtn shr" data-s="x" style="width:auto;padding:0 12px" title="X / Twitter">\ud835\udd4f</button><button class="fngg-hbtn shr" data-s="reddit" style="width:auto;padding:0 12px">Reddit</button><button class="fngg-hbtn shr" data-s="wa" style="width:auto;padding:0 12px">WhatsApp</button><button class="fngg-hbtn shr" data-s="copy" style="width:auto;padding:0 12px" title="' + t('copy') + '">\ud83d\udccb</button></div></div><div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)"><a href="'+GF_URL+'/feedback" target="_blank" style="font-size:10px;color:#555;text-decoration:none">'+t('review')+'</a></div></div>';
+            sm.innerHTML = '<div class="mbox"><div class="sicon">🎉</div><div class="mtitle">'+t('done')+'</div><div class="stxt2"><span id="icnt"></span>'+t('modalReady')+'<span id="icompare" style="display:none;font-size:12px"></span></div><button class="btn btn-g" id="contbtn">'+t('continueBtn')+'</button><div style="margin-top:12px"><div style="font-size:10px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">\ud83d\udce4 '+t('shareLocker')+'</div><div style="display:flex;gap:6px;justify-content:center"><button class="fngg-hbtn shr" data-s="x" style="width:auto;padding:0 12px" title="X / Twitter">\ud835\udd4f</button><button class="fngg-hbtn shr" data-s="reddit" style="width:auto;padding:0 12px">Reddit</button><button class="fngg-hbtn shr" data-s="wa" style="width:auto;padding:0 12px">WhatsApp</button><button class="fngg-hbtn shr" data-s="copy" style="width:auto;padding:0 12px" title="' + t('copy') + '">\ud83d\udccb</button></div></div><div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)"><a href="'+GF_URL+'/feedback" target="_blank" style="font-size:10px;color:#555;text-decoration:none">'+t('review')+'</a></div></div>';
             document.body.appendChild(sm);
         }
 
@@ -1661,53 +1635,6 @@
         var te = document.createElement('div');
         te.id = 'fngg-toast';
         document.body.appendChild(te);
-
-        if (IS_LOCKER && !IS_MOBILE) {
-            var ccm = document.createElement('div');
-            ccm.id = 'ccmodal';
-            ccm.className = 'fngg-m';
-            ccm.innerHTML = '<div class="mbox" style="text-align:left"><div class="mtitle" style="text-align:center">'+t('ccTitle')+'</div>' +
-                '<p style="margin:0 0 10px;font-size:11px;color:#888;line-height:1.5">'+t('ccDesc')+'</p>' +
-                '<input id="ccinput" type="text" placeholder="'+t('ccPlaceholder')+'" style="width:100%;box-sizing:border-box;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#fff;font-family:fn,sans-serif;font-size:13px;outline:none">' +
-                '<p id="ccstatus" style="margin:0 0 10px;font-size:11px;min-height:14px"></p>' +
-                '<button class="btn btn-y" id="ccapply" style="margin-bottom:6px">'+t('ccApply')+'</button>' +
-                '<button class="btn btn-x" id="ccclose">'+t('close')+'</button></div>';
-            document.body.appendChild(ccm);
-
-            var ccBusy = false;
-            async function applyCC() {
-                if (ccBusy || !session) {return;}
-                ccBusy = true;
-                var val = $('ccinput').value.trim();
-                var st = $('ccstatus');
-                st.style.color = '#888';
-                st.textContent = val ? t('ccChecking') : t('ccRemoving');
-                var ok = await setSAC(val);
-                if (ok) {
-                    st.style.color = '#4ade80';
-                    st.textContent = val ? t('ccActive').replace('{code}', val) : t('ccRemoved');
-                } else {
-                    st.style.color = '#ef4444';
-                    st.textContent = t('ccFailed');
-                }
-                ccBusy = false;
-            }
-            $('ccapply').onclick = applyCC;
-            $('ccinput').addEventListener('keydown', function(ev) { if (ev.key === 'Enter') {applyCC();} });
-            $('ccclose').onclick = function() { modal('ccmodal', false); };
-            ccm.onclick = function(ev) { if (ev.target === ccm) {modal('ccmodal', false);} };
-
-            document.addEventListener('keydown', function(ev) {
-                if (ev.ctrlKey && ev.altKey && ev.shiftKey && (ev.key === 'C' || ev.key === 'c')) {
-                    ev.preventDefault();
-                    if (!session) { toast(t('connect'), 'err'); return; }
-                    $('ccstatus').textContent = '';
-                    $('ccinput').value = '';
-                    modal('ccmodal', true);
-                    setTimeout(function() { $('ccinput').focus(); }, 100);
-                }
-            });
-        }
 
         if (!IS_MOBILE) {
             var setm = document.createElement('div');
@@ -1850,11 +1777,6 @@
 
         tab.onclick = togglePanel;
 
-        $('ccbtn').onclick = function() {
-            navigator.clipboard.writeText(SAC).then(function() {
-                toast(t('codeCopied'), 'ok');
-            }, function() { toast(t('couldntCopy'), 'err'); });
-        };
         $('sharebtn').onclick = function() {
             navigator.clipboard.writeText(GF_URL).then(function() {
                 toast(t('linkCopied'), 'ok');
@@ -1915,20 +1837,6 @@
                 }, function() { toast(t('couldntCopy'), 'err'); });
             };
 
-            $('ybtn').onclick = async function() {
-                modal('smodal', false);
-                var ok = await setSAC();
-                toast(ok ? t('thanksHeart') : t('couldntSetCode'), ok ? 'ok' : 'err');
-                setTimeout(function() {
-                    var url = $('smodal').dataset.url;
-                    if (url) {location.href = url;}
-                }, 800);
-            };
-            $('nbtn').onclick = function() {
-                modal('smodal', false);
-                var url = $('smodal').dataset.url;
-                if (url) {location.href = url;}
-            };
             $('contbtn').onclick = function() {
                 modal('smodal', false);
                 var url = $('smodal').dataset.url;
@@ -2001,7 +1909,7 @@
         }, AUTO_LOGOUT_DELAY);
 
         if (IS_RTL) {
-            ['fngg-panel','infomodal','setmodal','smodal','ccmodal','fngg-stats','fngg-debug','fngg-toast','fngg-presets','fngg-stab','fngg-dtab','fngg-ptab','fngg-watermark','fngg-onb'].forEach(function(id){ var e = $(id); if (e) {e.setAttribute('dir','rtl');} });
+            ['fngg-panel','infomodal','setmodal','smodal','fngg-stats','fngg-debug','fngg-toast','fngg-presets','fngg-stab','fngg-dtab','fngg-ptab','fngg-watermark','fngg-onb'].forEach(function(id){ var e = $(id); if (e) {e.setAttribute('dir','rtl');} });
         }
     }
 
@@ -2122,16 +2030,6 @@
         clearSession(); updateUI();
         setStatus(t('importLocker'));
         toast(t('loggedOut'), 'ok');
-    }
-
-    async function setSAC(code) {
-        if (!session) {return false;}
-        try {
-            var r = await http('POST', fnBase + '/fortnite/api/game/v2/profile/' + session.accountId + '/client/SetAffiliateName?profileId=common_core', {
-                'Authorization': 'Bearer ' + session.accessToken, 'Content-Type': 'application/json'
-            }, JSON.stringify({ affiliateName: code === undefined ? SAC : code }));
-            return r.status === 200 || r.status === 204;
-        } catch(e) { return false; }
     }
 
     async function loadCosmetics(silent) {
@@ -2300,7 +2198,7 @@
             var created = (ap && ap.created) ? ap.created.split('T')[0] : '2017-01-01';
 
             setStatus(t('loadingBanners'));
-            var ci = {}, currentSAC = null;
+            var ci = {};
             try {
                 var cr = await httpRetry('POST', fnBase + '/fortnite/api/game/v2/profile/' + session.accountId + '/client/QueryProfile?profileId=common_core&rvn=-1', {
                     'Authorization': 'Bearer ' + session.accessToken, 'Content-Type': 'application/json'
@@ -2308,7 +2206,6 @@
                 if (cr.status === 200) {
                     var cp = cr.data && cr.data.profileChanges && cr.data.profileChanges[0] ? cr.data.profileChanges[0].profile : null;
                     ci = (cp && cp.items) || {};
-                    currentSAC = (cp && cp.stats && cp.stats.attributes) ? cp.stats.attributes.mtx_affiliate : null;
                 } else if (cr.status === 401) { working = false; clearSession(); setStatus(t('importLocker')); updateUI(); toast(t('sessionExpired'), 'err'); return; }
             } catch(e) {}
 
@@ -2482,8 +2379,6 @@
             }
             working = false; updateUI();
 
-            var already = typeof currentSAC === 'string' && currentSAC.trim().toLowerCase() === SAC.toLowerCase();
-
             var s = getSettings();
             if (s.autoLogout === undefined || s.autoLogout) {GM_setValue('pendingAutoLogout', 'true');}
 
@@ -2504,11 +2399,6 @@
                     cmpEl.style.display = 'none';
                 }
             }
-            $('sacpitch').style.display = already ? 'none' : '';
-            $('sacthanks').style.display = already ? '' : 'none';
-            $('ybtn').style.display = already ? 'none' : '';
-            $('nbtn').style.display = already ? 'none' : '';
-            $('contbtn').style.display = already ? '' : 'none';
             setTimeout(function() { modal('smodal', true); }, 400);
             if (!getSettings().onboarded) {
                 saveSetting('onboarded', true);
