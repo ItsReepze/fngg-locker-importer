@@ -1,5 +1,14 @@
 # Changelog
 
+## v4.1.1 (2026-11-04)
+- Project status: no longer actively developed, since Epic Games removed the Support-A-Creator code that was the project's only income. Bug fixes only if something breaks completely
+- Fixed: the 403 error on Chrome with Tampermonkey, even with Developer Mode and "Allow User Scripts" enabled. The fortnite.gg item list is now loaded with the browser's normal fetch, which sends the page's cookies. The old method stays as a fallback. Thanks to Josh Reed on Greasyfork for finding this
+- Improved: "fortnite.gg not reachable" now shows the reason in brackets (timeout, no connection, HTTP status or unexpected response), so it's clear whether it's a connection problem or fortnite.gg itself
+- Fixed: a timeout or network error while loading the fortnite.gg item list no longer ends in the generic "Import failed" message
+- Fixed: if fortnite.gg returns a Cloudflare check page instead of the item list, the import now stops with a clear message instead of continuing with garbage data
+- Fixed: car skin paint variants (carskin_...), gift boxes (gb_...), V-Bucks bonus entries (mtxgiveaway, mtxpurchasebonus, mtxcomplimentary) and story quest unlocks no longer show up as "Unrecognized items" in the debug console. They are backend data and not lockable on fortnite.gg (#5)
+- Docs: FAQ entries for Mac, the "not reachable" error, missing items, and a note that you don't need to download anything from GitHub
+
 ## v4.1.0 (2026-08-04)
 - Removed: the Creator Code system. The code is not active anymore, so the support prompt after an import, the code button in the panel footer, the "Support me" info section, the Creator Code part of the account stats and the hidden dev tool are all gone
 - Improved: with the code gone the script no longer writes anything to your Epic account at all. It only reads data now
