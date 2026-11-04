@@ -5,13 +5,16 @@
 **Import your entire Fortnite locker to [fortnite.gg](https://fortnite.gg) with one click.**
 
 [![Install](https://img.shields.io/badge/Install-Greasyfork-670000?style=for-the-badge)](https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer)
-[![Version](https://img.shields.io/badge/Version-4.1.0-f0db4f?style=for-the-badge)](https://github.com/ItsReepze/fngg-locker-importer/releases)
+[![Version](https://img.shields.io/badge/Version-4.1.1-f0db4f?style=for-the-badge)](https://github.com/ItsReepze/fngg-locker-importer/releases)
 [![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
 
 No downloads. No .exe files. No password sharing. Runs entirely in your browser.
 
 
 </div>
+
+> [!NOTE]
+> **This project is no longer actively developed.** Epic Games removed my Support-A-Creator code, and that code was the only thing that gave this project any income. Without it I can't justify putting more time into new features. The script keeps working as it is, stays free and open source, and I'll still try to fix things if something breaks completely. Pull requests are welcome.
 
 ## ✨ Features
 
@@ -34,6 +37,8 @@ No downloads. No .exe files. No password sharing. Runs entirely in your browser.
 
 ## 🚀 Installation
 
+> **Don't download the files from this repository.** You don't need them. Install the script through Greasyfork as described below and your userscript manager takes care of everything, including updates.
+
 1. **Install a userscript manager** (one-time setup):
    - Chrome / Edge / Brave: [Tampermonkey](https://www.tampermonkey.net/)
    - Firefox: [Tampermonkey](https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/) or [Violentmonkey](https://violentmonkey.github.io/)
@@ -42,7 +47,7 @@ No downloads. No .exe files. No password sharing. Runs entirely in your browser.
 
 > **Chrome users:** If the panel does not appear, open the Tampermonkey extension settings and enable **"Allow User Scripts"** (Chrome requires this since Manifest V3). Then reload the page.
 
-> **Note:** This is a desktop tool. It does not work on iPhone, iPad or Android because mobile browsers do not support userscripts properly.
+> **Note:** This is a desktop tool. It works on Windows, Mac and Linux, but not on iPhone, iPad or Android because mobile browsers do not support userscripts properly.
 
 ## ⚡ How it works
 
@@ -75,6 +80,9 @@ Yes. This was the top priority in every design decision:
 **The panel does not show up.**
 Make sure Tampermonkey is installed and enabled, then reinstall the script from Greasyfork and reload fortnite.gg. On Chrome, enable "Allow User Scripts" in the extension settings.
 
+**I downloaded the files from GitHub, what do I do with them?**
+Nothing, you can delete them. Install Tampermonkey, then install the script from [Greasyfork](https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer) with one click. The extension handles the rest.
+
 **The Epic login page did not open.**
 Your popup blocker probably stopped it. Click the "Login page didn't open? Click here" link in the panel.
 
@@ -82,7 +90,15 @@ Your popup blocker probably stopped it. Click the "Login page didn't open? Click
 An adblocker or network filter is blocking `cdnjs.cloudflare.com`. Allow that domain and reload.
 
 **On Chrome it fails with a 403 or "fortnite.gg blocked the request".**
-Recent Chrome versions require Tampermonkey's Developer Mode for some requests. Open `chrome://extensions`, turn on "Developer mode" (top right), and reload fortnite.gg. If it still fails, Firefox works without this step.
+This should be fixed since v4.1.1, so first make sure you're on the latest version. If it still happens, open `chrome://extensions`, turn on "Developer mode" (top right), and reload fortnite.gg. If that doesn't help either, Firefox works without this step.
+
+**It says "fortnite.gg not reachable".**
+The reason is shown in brackets behind the message:
+- `timeout` or `no connection`: the request never reached fortnite.gg. Check your internet connection, VPN or adblocker/firewall and try again in a minute.
+- `HTTP 5xx` (500, 502, 503 ...): fortnite.gg itself has problems right now. Wait a bit and try again.
+- `unexpected response`: fortnite.gg answered with something that is not the item list, usually a Cloudflare check page. Open fortnite.gg in a normal tab, let the check finish, reload and import again.
+
+If it keeps happening, post the debug report in a GitHub issue.
 
 **Why does the debug console show "backend items skipped"?**
 Your Epic profile contains quest trackers, tokens, banner colors and other non-cosmetic data. These are not lockable items and fortnite.gg does not know them. This is completely normal.
@@ -92,6 +108,12 @@ Bundles do not exist as items in your Epic profile. When you buy a bundle, Epic 
 
 **Does this work on mobile?**
 No. Mobile browsers do not support userscripts. Use a desktop browser (Chrome, Firefox or Edge).
+
+**Does this work on a Mac?**
+Yes. Use Chrome, Firefox, Edge or Brave with Tampermonkey, exactly like on Windows. Safari is not tested, so if you run into problems there, switch to one of the other browsers.
+
+**Some items or banners are missing after the import.**
+Check the debug console first. If an import filter is active it says so there. If not, please open an issue with the debug report and the names of a few missing items so I can look up their IDs.
 
 **Something else is wrong.**
 Open the debug console (🐛 tab on the left), click "Run Diagnostics" and the 📋 button, then paste the report into a [GitHub issue](https://github.com/ItsReepze/fngg-locker-importer/issues). That report contains everything needed to help you.
@@ -111,7 +133,7 @@ Contributions are welcome! The codebase is a single readable userscript file.
 
 ## ❤️ Support
 
-This tool is and stays free. A ⭐ on this repository and a [review on Greasyfork](https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer/feedback) help a lot.
+This tool is and stays free. Since the creator code is gone there is no way to support the project with money anymore, but a ⭐ on this repository and a [review on Greasyfork](https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer/feedback) help a lot.
 
 ## 📜 License & Disclaimer
 

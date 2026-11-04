@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Fortnite.gg Locker Importer
 // @namespace    https://fortnite.gg/
-// @version      4.1.0
+// @version      4.1.1
 // @description  Import your Fortnite locker to Fortnite.gg
 // @author       ItsReepze
 // @match        https://fortnite.gg/*
@@ -30,7 +30,7 @@
 (function() {
     'use strict';
 
-    var VERSION = (typeof GM_info !== 'undefined' && GM_info.script && GM_info.script.version) || '4.1.0';
+    var VERSION = (typeof GM_info !== 'undefined' && GM_info.script && GM_info.script.version) || '4.1.1';
     var GF_URL = 'https://greasyfork.org/en/scripts/563780-fortnite-gg-locker-importer';
     var SESSION_TIMEOUT = 7200000;
     var POLL_INTERVAL = 3000;
@@ -312,8 +312,43 @@
         });
     }
 
+    // The item list is on the same origin as the page, so try the browser's own fetch first.
+    // On Chrome, GM_xmlhttpRequest goes through the extension context and fortnite.gg can answer
+    // with a 403 even with Developer Mode on. A normal fetch sends the page's cookies and works.
+    // Thanks to Josh Reed on Greasyfork for tracking this down.
+    async function fetchFnggItemsNative() {
+        var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        var timer = ctrl ? setTimeout(function() { ctrl.abort(); }, REQUEST_TIMEOUT) : null;
+        try {
+            var resp = await fetch('/api/items.json', {
+                method: 'GET', credentials: 'include', cache: 'no-cache',
+                headers: { 'Accept': 'application/json, text/plain, */*' },
+                signal: ctrl ? ctrl.signal : undefined
+            });
+            var text = await resp.text();
+            var data;
+            try { data = JSON.parse(text); } catch(e) { data = text; }
+            return { status: resp.status, data: data };
+        } finally {
+            if (timer) {clearTimeout(timer);}
+        }
+    }
+
     async function fetchFnggItems() {
-        var r = await httpRetry('GET', 'https://fortnite.gg/api/items.json');
+        var native = null;
+        try {
+            native = await fetchFnggItemsNative();
+            if (native.status === 200 && native.data && typeof native.data === 'object') {return native;}
+        } catch(e) {}
+
+        // Fallback: the old way through the userscript manager
+        var r;
+        try {
+            r = await httpRetry('GET', 'https://fortnite.gg/api/items.json');
+        } catch(e) {
+            if (native) {return native;}
+            throw e;
+        }
         if (r.status === 403) {
             try {
                 var r2 = await httpRetry('GET', 'https://www.fortnite.gg/api/items.json');
@@ -321,6 +356,14 @@
             } catch(e) {}
         }
         return r;
+    }
+
+    // Short reason shown next to "fortnite.gg not reachable" so users can tell
+    // a timeout or blocked connection apart from a server error when reporting it
+    function fnggErrorDetail(r) {
+        if (!r.status) {return r.err === 'timeout' ? 'timeout' : 'no connection';}
+        if (r.status === 200) {return 'unexpected response';}
+        return 'HTTP ' + r.status;
     }
 
     function http(method, url, headers, body, timeoutMs) {
@@ -2176,10 +2219,12 @@
             var cdb = await loadCosmetics();
 
             setStatus(t('gettingItems'));
-            var fr = await fetchFnggItems();
-            if (fr.status !== 200) {
+            var fr;
+            try { fr = await fetchFnggItems(); }
+            catch (fe) { fr = { status: 0, data: null, err: fe && fe.message }; }
+            if (fr.status !== 200 || !fr.data || typeof fr.data !== 'object') {
                 working = false; setStatus(t('tryAgain')); updateUI();
-                toast(fr.status === 403 ? t('fnggBlocked') : t('fnggUnreachable'), 'err');
+                toast(fr.status === 403 ? t('fnggBlocked') : t('fnggUnreachable') + ' (' + fnggErrorDetail(fr) + ')', 'err');
                 return;
             }
             var fngg = {};
@@ -2226,9 +2271,9 @@
             var unrecognized = [];
             for (var u = 0; u < unmappedItems.length; u++) {
                 var uid = unmappedItems[u];
-                if (/quest|challenge|bundle|punchcard|mission|daily|dailies|mastery|^q_|milestonescard/.test(uid)) {grouped.quest++;}
-                else if (/^vtid_|^wheel_|^carbody_|^vehicle/.test(uid)) {grouped.vehicle++;}
-                else if (/token|schedule|granter|generic_instance|passdata|jobboard|^iatid_|^prereq|^conditional|cosmos|season|^sparks_|^homebase|^stat_|currency|defaultcolor|^founder|^campaign|^galileo|seasonasset|musicpass|rocketpass|victorycrown|mtxpurchased|^junoaddon|battlepassgb|^companion_reactfx|^brs\d|^storm$|^tofugarden|^defaultvictory/.test(uid)) {grouped.system++;}
+                if (/quest|challenge|bundle|punchcard|mission|daily|dailies|mastery|^q_|milestonescard|^athena_s\d+_story_/.test(uid)) {grouped.quest++;}
+                else if (/^vtid_|^wheel_|^carbody_|^carskin_|^vehicle/.test(uid)) {grouped.vehicle++;}
+                else if (/token|schedule|granter|generic_instance|passdata|jobboard|^iatid_|^prereq|^conditional|cosmos|season|^sparks_|^homebase|^stat_|currency|defaultcolor|^founder|^campaign|^galileo|seasonasset|musicpass|rocketpass|victorycrown|^mtx|^gb_|^junoaddon|battlepassgb|^companion_reactfx|^brs\d|^storm$|^tofugarden|^defaultvictory/.test(uid)) {grouped.system++;}
                 else {unrecognized.push(uid);}
             }
 
